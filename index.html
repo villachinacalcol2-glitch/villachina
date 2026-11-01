@@ -889,7 +889,7 @@ setInterval(pintarCabecera,60000);
     const {initializeApp}=await import(`https://www.gstatic.com/firebasejs/${V}/firebase-app.js`);
     const {getFirestore,collection,doc,onSnapshot,setDoc}=await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
     const fs=getFirestore(initializeApp(FIREBASE_CONFIG));
-    window.guardarPedidoRemoto=p=>setDoc(doc(fs,"pedidos",p.numero),p);
+    window.guardarPedidoRemoto=p=>setDoc(doc(fs,"pedidos",p.numero),JSON.parse(JSON.stringify(p)));
     onSnapshot(collection(fs,"productos"),snap=>{
       productos=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
       // limpiar del carrito lo que ya no existe

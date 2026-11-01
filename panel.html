@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="robots" content="noindex, nofollow">
+<meta name="robots" content="noindex, nofollow, noarchive">
+<meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#4a0610">
 <link rel="manifest" href="panel.webmanifest">
 <link rel="icon" type="image/png" href="icon-192.png">
@@ -232,6 +233,7 @@ body{padding-bottom:30px}
 .err{color:#ff8a8a;font-size:13px;margin-top:10px;min-height:18px}
 .hidden{display:none!important}
 .filt{padding:12px 18px 0}
+.seg button:disabled{opacity:.35;cursor:not-allowed}
 .hrow{display:flex;align-items:center;gap:6px;margin-top:8px}
 .hrow b{width:36px;font-size:13px}.hrow span{color:var(--mut);font-size:12px}
 .hrow .in{padding:8px 4px;font-size:13px;flex:1;min-width:0;text-align:center}
@@ -270,11 +272,19 @@ body{padding-bottom:30px}
     <h1 style="font-size:24px">Panel del restaurante</h1>
     <p class="tag" style="color:var(--mut)">Villa China “Calcol”</p>
     <div id="sinConfig" class="note hidden" style="margin-top:16px;text-align:left">🧪 <b>Modo prueba</b> (sin base de datos)<br>Correo: <b>admin@villachina.com</b><br>Clave: <b>calcol123</b><br><small style="color:var(--mut)">Los productos se guardan solo en este navegador.</small></div>
+    <div class="seg" style="margin-top:16px" id="segLogin"><button class="act" data-lg="dueno" type="button">👑 Dueño</button><button data-lg="emp" type="button">🧑‍🍳 Soy empleado</button></div>
+    <form id="fEmp" class="hidden" style="text-align:left">
+      <label class="f">Tu código de acceso</label><input class="in" id="eCod" autocomplete="off" autocapitalize="characters" autocorrect="off" spellcheck="false" maxlength="14" placeholder="XXXX-XXXX-XX" style="font-family:monospace;font-size:20px;letter-spacing:2px;text-align:center;text-transform:uppercase">
+      <div style="font-size:12px;color:var(--mut);margin-top:6px">El dueño te lo envía por WhatsApp.</div>
+      <button class="btn gold" style="margin-top:18px" id="eBtn">Entrar como empleado</button>
+      <div class="err" id="eErr"></div>
+    </form>
     <form id="fLogin" style="text-align:left">
       <label class="f">Correo</label><input class="in" id="lMail" type="email" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false">
-      <label class="f">Contraseña</label><input class="in" id="lPass" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off">
+      <label class="f">Contraseña</label><div style="position:relative"><input class="in" id="lPass" type="password" autocomplete="current-password" autocapitalize="off" autocorrect="off" style="padding-right:48px"><button type="button" id="verPass" style="position:absolute;right:8px;top:50%;transform:translateY(-50%);font-size:18px;padding:6px" onclick="const i=document.getElementById('lPass');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁️':'🙈'">👁️</button></div>
       <button class="btn gold" style="margin-top:18px" id="lBtn">Entrar</button>
       <div class="err" id="lErr"></div>
+      <button type="button" class="hidden" id="olvido" style="color:var(--gold2);font-size:13px;font-weight:600;margin-top:6px;width:100%">¿Olvidaste tu contraseña?</button>
       <button type="button" class="btn ghost hidden" id="demoBtn" style="margin-top:4px">Entrar directo (modo prueba)</button>
     </form>
   </div>
@@ -312,6 +322,7 @@ body{padding-bottom:30px}
       <button data-t="clientes">👥 Clientes</button>
       <button data-t="ventas">📊 Ventas</button>
       <button data-t="historial">📅 Historial</button>
+      <button data-t="equipo">🧑‍🍳 Equipo</button>
       <button data-t="ajustes">⚙️ Ajustes</button>
     </div>
     <div id="body"></div>
@@ -347,8 +358,35 @@ const toast=t=>{const el=$("#toast");el.textContent=t;el.classList.add("show");c
 const ph=p=>`<div class="ph">${p.imagen?`<img src="${esc(p.imagen)}" alt="">`:`<span class="emo">${EMO[p.categoria]||"🥢"}</span>`}</div>`;
 const cats=()=>Array.isArray(cfg.categorias)&&cfg.categorias.length?cfg.categorias:CATS_DEFAULT;
 
-let cierres=[], pedLoaded=false, cieLoaded=false, archivando=false, abiertoDia=null, formT=[], formE=[], ventasPer="7", filtroCli="", nuevaUbic=null, filtroDisp="todos", pedidos=[], productos=[], cfg={...CONFIG_DEFAULT}, tab="productos", editando=null, imgNueva=null, filtro="";
+let EMAIL_ACT="", perfil={nombre:""}, cierres=[], pedLoaded=false, cieLoaded=false, archivando=false, abiertoDia=null, formT=[], formE=[], ventasPer="7", filtroCli="", nuevaUbic=null, filtroDisp="todos", pedidos=[], productos=[], cfg={...CONFIG_DEFAULT}, tab="productos", editando=null, imgNueva=null, filtro="";
 let F, fs, auth;
+
+/* ===== Seguridad: todo lo que llega de clientes se limpia antes de mostrarse ===== */
+const OWNER_EMAIL="villachinacalcol2@gmail.com";
+const S=(v,max=300)=>String(v??"").replace(/[<>"'`\\]/g,"").slice(0,max);
+const N=v=>{const n=Number(v);return isFinite(n)?n:0};
+const capValida=c=>typeof c==="string"&&c.length<900000&&/^data:image\/(jpeg|png|webp);base64,[A-Za-z0-9+/=]+$/.test(c);
+function limpiarPedido(o){
+  o=o||{};const cli=o.cliente||{},u=o.ubicacion,cap=capValida(o.captura)?o.captura:"";
+  return {id:S(o.id,40),numero:S(o.numero,30),fecha:N(o.fecha),cliente:{nombre:S(cli.nombre,80),telefono:S(cli.telefono,30)},
+    recibe:S(o.recibe,80),telRecibe:S(o.telRecibe,30),entrega:S(o.entrega,30),
+    ubicacion:u&&isFinite(+u.lat)&&isFinite(+u.lng)&&Math.abs(+u.lat)<=90&&Math.abs(+u.lng)<=180?{lat:+u.lat,lng:+u.lng}:null,
+    direccion:S(o.direccion,300),
+    items:(Array.isArray(o.items)?o.items:[]).slice(0,60).map(x=>({nombre:S(x&&x.nombre,100),cant:Math.max(0,Math.round(N(x&&x.cant))),precio:N(x&&x.precio),
+      nota:S(x&&x.nota,200),tamano:S(x&&x.tamano,40),extras:(Array.isArray(x&&x.extras)?x.extras:[]).slice(0,20).map(e=>S(e,60))})),
+    subtotal:N(o.subtotal),envio:N(o.envio),total:N(o.total),totalBs:N(o.totalBs),pago:S(o.pago,60),referencia:S(o.referencia,40),
+    estado:S(o.estado,40),por:S(o.por,40),tieneCaptura:!!o.tieneCaptura||!!cap,captura:cap};
+}
+
+/* ===== Pantalla de entrada: dueño / empleado ===== */
+document.querySelectorAll("#segLogin [data-lg]").forEach(b=>b.onclick=()=>{const emp=b.dataset.lg==="emp";
+  document.querySelectorAll("#segLogin [data-lg]").forEach(x=>x.classList.toggle("act",x===b));
+  $("#fLogin").classList.toggle("hidden",emp);$("#fEmp").classList.toggle("hidden",!emp);$("#sinConfig").classList.toggle("hidden",emp||!LOCAL);if(emp)$("#eCod").focus()});
+$("#eCod").addEventListener("input",e=>{const v=normCod(e.target.value);if(v.replace(/-/g,"").length>=10)e.target.value=v});
+const bloqueoK=k=>{try{return JSON.parse(localStorage.getItem(k)||"{}")}catch(e){return {}}};
+const falloK=k=>{const b=bloqueoK(k);b.n=(b.n||0)+1;if(b.n>=5)b.hasta=Date.now()+Math.min(15,2**(b.n-5))*60000;try{localStorage.setItem(k,JSON.stringify(b))}catch(e){}return b};
+function bloqueadoK(k,el){const b=bloqueoK(k);if(b.hasta&&Date.now()<b.hasta){$(el).textContent=`Demasiados intentos. Espera ${Math.ceil((b.hasta-Date.now())/60000)} min.`;return true}return false}
+function mostrarLogin(msg){$("#vApp").classList.add("hidden");$("#vLogin").classList.remove("hidden");if(msg){document.querySelector('#segLogin [data-lg="emp"]').click();$("#eErr").textContent=msg}}
 
 /* ===== MODO PRUEBA (sin Firebase): guarda en este navegador ===== */
 const DEMO_MAIL="admin@villachina.com", DEMO_PASS="calcol123";
@@ -364,11 +402,11 @@ function shimLocal(){
   return {
     collection:(_,n)=>({tipo:"col",n}), doc:(_,n,id)=>({tipo:"doc",n,id}),
     onSnapshot(ref,cb){const f=()=>{ if(ref.tipo==="col") cb({docs:prods(ref.n).map(docSnap)});
-        else {const c=leer(K.config);cb({exists:()=>!!c,data:()=>c})} };
+        else {const c=ref.n==="config"?leer(K.config):(prods(ref.n).find(x=>x.id===ref.id)||null);cb({exists:()=>!!c,data:()=>c})} };
       subs.add(f);f();return()=>subs.delete(f)},
     async addDoc(ref,data){const a=prods(ref.n);a.push({id:"p"+Date.now().toString(36)+Math.random().toString(36).slice(2,6),...data});escribir(key(ref.n),a);avisar()},
     async setDoc(ref,data){ if(ref.n==="config"){escribir(K.config,data)} else {const a=prods(ref.n);const i=a.findIndex(x=>x.id===ref.id);const d={id:ref.id,...data};if(i<0)a.push(d);else a[i]=d;escribir(key(ref.n),a)} avisar()},
-    async updateDoc(ref,data){const a=prods(ref.n);const i=a.findIndex(x=>x.id===ref.id);if(i>=0){a[i]={...a[i],...data};escribir(key(ref.n),a)}avisar()},
+    async updateDoc(ref,data){if(ref.n==="config"){const c=leer(K.config);if(!c){const er=new Error("no existe");throw er}escribir(K.config,{...c,...data});avisar();return}const a=prods(ref.n);const i=a.findIndex(x=>x.id===ref.id);if(i>=0){a[i]={...a[i],...data};escribir(key(ref.n),a)}avisar()},
     async deleteDoc(ref){escribir(key(ref.n),prods(ref.n).filter(x=>x.id!==ref.id));avisar()}
   };
 }
@@ -378,20 +416,35 @@ if(LOCAL){
   $("#demoBtn").classList.remove("hidden");
   $("#demoBtn").onclick=()=>{try{sessionStorage.setItem("vc_admin","1")}catch(e){} entrar()};
   let unsubs=[];
+  const limpiarSubs=()=>{unsubs.forEach(f=>f());unsubs=[]};
   const entrar=()=>{
-    if(unsubs.length)return;
-    $("#vLogin").classList.add("hidden");$("#vApp").classList.remove("hidden");$("#who").textContent=DEMO_MAIL+" · modo prueba";
-    unsubs.push(F.onSnapshot(F.collection(fs,"productos"),s=>{productos=s.docs.map(d=>({id:d.id,...d.data()}));stats();if(tab==="productos")render()}));
-    unsubs.push(F.onSnapshot(F.doc(fs,"config","tienda"),s=>{cfg={...CONFIG_DEFAULT,...(s.exists()?s.data():{})};pintarEstado()}));
-    unsubs.push(F.onSnapshot(F.collection(fs,"cierres"),s=>{cierres=s.docs.map(d=>({id:d.id,...d.data()}));cieLoaded=true;archivar();if(TABS_VENTAS.includes(tab))render()},e=>console.warn(e)));
-    unsubs.push(F.onSnapshot(F.collection(fs,"pedidos"),s=>{pedidos=s.docs.map(d=>({id:d.id,...d.data()}));detectarNuevos();pedLoaded=true;badge();archivar();if(TABS_VENTAS.includes(tab))render()},e=>console.warn(e)));
-    render();
+    limpiarSubs();ROL="dueno";PERMISOS=new Set();EMP=null;
+    $("#vLogin").classList.add("hidden");$("#vApp").classList.remove("hidden");EMAIL_ACT=DEMO_MAIL+" · modo prueba";saludo(EMAIL_ACT);
+    suscribir(unsubs);
   };
+  const entrarEmp=cod=>{
+    const c=(JSON.parse(localStorage.getItem("vc_codigos")||"[]")).find(x=>x.id===cod);
+    if(!c||!c.activo){$("#eErr").textContent="Código incorrecto o desactivado.";return false}
+    limpiarSubs();ROL="empleado";EMP={codigo:cod,nombre:c.nombre};PERMISOS=new Set(c.permisos||[]);EMAIL_ACT="";
+    try{sessionStorage.setItem("vc_emp",cod)}catch(e){}
+    F.setDoc(F.doc(fs,"sesiones","local-"+cod),{codigo:cod,dispositivo:disp(),inicio:Date.now(),ultimo:Date.now()});
+    $("#vLogin").classList.add("hidden");$("#vApp").classList.remove("hidden");
+    unsubs.push(F.onSnapshot(F.collection(fs,"codigos"),s=>{const d=s.docs.find(x=>x.id===cod);const c2=d&&d.data();
+      if(!c2||!c2.activo){salirEmp("Tu acceso fue desactivado por el dueño.");return}
+      const nuevos=JSON.stringify([...(c2.permisos||[])].sort())!==JSON.stringify([...PERMISOS].sort());EMP.nombre=c2.nombre;
+      if(nuevos){PERMISOS=new Set(c2.permisos||[]);const keep=unsubs.shift();limpiarSubs();unsubs.push(keep);suscribir(unsubs)}else saludo("")}));
+    suscribir(unsubs);return true;
+  };
+  const salirEmp=msg=>{try{sessionStorage.removeItem("vc_emp")}catch(e){}limpiarSubs();ROL="dueno";EMP=null;mostrarLogin(msg)};
+  $("#fEmp").onsubmit=e=>{e.preventDefault();$("#eErr").textContent="";if(bloqueadoK("vc_lock_emp","#eErr"))return;
+    const cod=normCod($("#eCod").value);if(!codOk(cod)){$("#eErr").textContent="El código tiene 10 letras y números (XXXX-XXXX-XX).";return}
+    if(entrarEmp(cod)){try{localStorage.removeItem("vc_lock_emp")}catch(e){}$("#eCod").value=""}else falloK("vc_lock_emp")};
+  try{const ce=sessionStorage.getItem("vc_emp");if(ce)entrarEmp(ce)}catch(e){}
   try{ if(sessionStorage.getItem("vc_admin")==="1") entrar() }catch(e){}
   $("#fLogin").onsubmit=e=>{e.preventDefault();
     if($("#lMail").value.trim().toLowerCase()===DEMO_MAIL&&$("#lPass").value.trim().toLowerCase()===DEMO_PASS){try{sessionStorage.setItem("vc_admin","1")}catch(e){} entrar()}
     else $("#lErr").textContent="Correo o clave incorrectos."};
-  $("#salir").onclick=()=>{try{sessionStorage.removeItem("vc_admin")}catch(e){} unsubs.forEach(f=>f());unsubs=[];$("#vApp").classList.add("hidden");$("#vLogin").classList.remove("hidden");$("#lPass").value=""};
+  $("#salir").onclick=()=>{if(ROL==="empleado"){F.deleteDoc(F.doc(fs,"sesiones","local-"+EMP.codigo));salirEmp();return}try{sessionStorage.removeItem("vc_admin")}catch(e){} limpiarSubs();mostrarLogin();$("#lPass").value=""};
 }
 else iniciar();
 
@@ -401,37 +454,78 @@ async function iniciar(){
     const A=await import(`https://www.gstatic.com/firebasejs/${V}/firebase-auth.js`);
     F=await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
     auth=A.getAuth(app); fs=F.getFirestore(app);
+    window.resetClave=()=>A.sendPasswordResetEmail(auth,OWNER_EMAIL);
+    const bloqueo=()=>{try{const b=JSON.parse(localStorage.getItem("vc_lock")||"{}");return b}catch(e){return {}}};
+    const fallo=()=>{const b=bloqueo();b.n=(b.n||0)+1;if(b.n>=5){b.hasta=Date.now()+Math.min(15,2**(b.n-5))*60000}try{localStorage.setItem("vc_lock",JSON.stringify(b))}catch(e){}return b};
     $("#fLogin").onsubmit=async e=>{
-      e.preventDefault(); $("#lErr").textContent=""; $("#lBtn").disabled=true; $("#lBtn").textContent="Entrando…";
-      try{ await A.signInWithEmailAndPassword(auth,$("#lMail").value.trim(),$("#lPass").value) }
-      catch(err){ $("#lErr").textContent="Correo o contraseña incorrectos." }
+      e.preventDefault(); $("#lErr").textContent="";
+      const b=bloqueo(); if(b.hasta&&Date.now()<b.hasta){$("#lErr").textContent=`Demasiados intentos. Espera ${Math.ceil((b.hasta-Date.now())/60000)} min.`;return}
+      const mail=$("#lMail").value.trim().toLowerCase(), pass=$("#lPass").value;
+      if(!mail||!pass){$("#lErr").textContent="Escribe tu correo y contraseña.";return}
+      $("#lBtn").disabled=true; $("#lBtn").textContent="Entrando…";
+      try{ if(mail!==OWNER_EMAIL)throw {code:"no-dueno"}; await A.signInWithEmailAndPassword(auth,mail,pass); try{localStorage.removeItem("vc_lock")}catch(e){} $("#lPass").value="" }
+      catch(err){ const x=fallo(); $("#lErr").textContent=err&&err.code==="auth/network-request-failed"?"Sin conexión a internet.":
+        x.hasta?"Demasiados intentos fallidos. Espera unos minutos.":`Correo o contraseña incorrectos.${x.n>=3?` Te quedan ${5-x.n} intentos.`:""}` }
       $("#lBtn").disabled=false; $("#lBtn").textContent="Entrar";
     };
-    $("#salir").onclick=()=>A.signOut(auth);
-    let unsubs=[];
+    $("#olvido").classList.remove("hidden");
+    $("#olvido").onclick=()=>confirmar("¿Enviar a "+OWNER_EMAIL+" un enlace para crear una contraseña nueva?",async()=>{try{await window.resetClave();toast("📧 Revisa tu correo (y la carpeta de spam)")}catch(e){toast("No se pudo enviar. Intenta más tarde.")}},"Enviar");
+    let unsubs=[], entrandoEmp=false, pulso=null;
+    const limpiarSubs=()=>{unsubs.forEach(f=>f());unsubs=[];clearInterval(pulso)};
+    const expulsar=async msg=>{limpiarSubs();try{await A.signOut(auth)}catch(e){}ROL="dueno";EMP=null;mostrarLogin(msg)};
+    $("#salir").onclick=async()=>{if(ROL==="empleado"&&auth.currentUser){try{await F.deleteDoc(F.doc(fs,"sesiones",auth.currentUser.uid))}catch(e){}}limpiarSubs();A.signOut(auth)};
+    $("#fEmp").onsubmit=async e=>{
+      e.preventDefault();$("#eErr").textContent="";if(bloqueadoK("vc_lock_emp","#eErr"))return;
+      const cod=normCod($("#eCod").value);if(!codOk(cod)){$("#eErr").textContent="El código tiene 10 letras y números (XXXX-XXXX-XX).";return}
+      $("#eBtn").disabled=true;$("#eBtn").textContent="Entrando…";entrandoEmp=true;
+      try{const cred=await A.signInAnonymously(auth);
+        await F.setDoc(F.doc(fs,"sesiones",cred.user.uid),{codigo:cod,dispositivo:disp(),inicio:Date.now(),ultimo:Date.now()});
+        entrandoEmp=false;try{localStorage.removeItem("vc_lock_emp")}catch(x){}$("#eCod").value="";await iniciarEmpleado(cred.user);
+      }catch(err){entrandoEmp=false;try{await A.signOut(auth)}catch(x){}const b=falloK("vc_lock_emp");
+        $("#eErr").textContent=err&&err.code==="auth/operation-not-allowed"?"El acceso de empleados no está activado en Firebase.":err&&err.code==="auth/network-request-failed"?"Sin conexión a internet.":b.hasta?"Demasiados intentos. Espera unos minutos.":"Código incorrecto o desactivado."}
+      $("#eBtn").disabled=false;$("#eBtn").textContent="Entrar como empleado";
+    };
+    async function iniciarEmpleado(u){
+      limpiarSubs();
+      try{
+        const ses=await F.getDoc(F.doc(fs,"sesiones",u.uid));if(!ses.exists())return expulsar("Tu sesión terminó. Entra de nuevo con tu código.");
+        const cod=ses.data().codigo, cd=await F.getDoc(F.doc(fs,"codigos",cod));
+        if(!cd.exists()||cd.data().activo!==true)return expulsar("Tu acceso fue desactivado por el dueño.");
+        ROL="empleado";EMP={codigo:cod,nombre:S(cd.data().nombre,40)};PERMISOS=new Set(cd.data().permisos||[]);EMAIL_ACT="";
+        $("#vLogin").classList.add("hidden");$("#vApp").classList.remove("hidden");
+        const fijos=[];
+        fijos.push(F.onSnapshot(F.doc(fs,"codigos",cod),s=>{
+          if(!s.exists()||s.data().activo!==true)return expulsar("Tu acceso fue desactivado por el dueño.");
+          const np=s.data().permisos||[];EMP.nombre=S(s.data().nombre,40);
+          if(JSON.stringify([...np].sort())!==JSON.stringify([...PERMISOS].sort())){PERMISOS=new Set(np);unsubs.forEach(f=>f());unsubs=[...fijos];suscribir(unsubs)}else saludo("")
+        },()=>expulsar("Tu acceso fue desactivado por el dueño.")));
+        fijos.push(F.onSnapshot(F.doc(fs,"sesiones",u.uid),s=>{if(!s.exists())expulsar("El dueño cerró tu sesión. Entra de nuevo con tu código.")},()=>{}));
+        unsubs.push(...fijos);
+        pulso=setInterval(()=>F.updateDoc(F.doc(fs,"sesiones",u.uid),{ultimo:Date.now()}).catch(()=>{}),10*60000);
+        suscribir(unsubs);
+      }catch(e){console.error(e);expulsar("No se pudo entrar. Revisa tu código y tu internet.")}
+    }
     A.onAuthStateChanged(auth,u=>{
-      unsubs.forEach(f=>f()); unsubs=[];
+      if(u&&u.isAnonymous){if(!entrandoEmp)iniciarEmpleado(u);return}
+      limpiarSubs();
       $("#vLogin").classList.toggle("hidden",!!u); $("#vApp").classList.toggle("hidden",!u);
-      if(!u)return;
-      $("#who").textContent=u.email;
-      unsubs.push(F.onSnapshot(F.collection(fs,"productos"),s=>{productos=s.docs.map(d=>({id:d.id,...d.data()}));stats();if(tab==="productos")render()},e=>toast("Error leyendo productos")));
-      unsubs.push(F.onSnapshot(F.collection(fs,"cierres"),s=>{cierres=s.docs.map(d=>({id:d.id,...d.data()}));cieLoaded=true;archivar();if(TABS_VENTAS.includes(tab))render()},e=>console.warn(e)));
-    unsubs.push(F.onSnapshot(F.collection(fs,"pedidos"),s=>{pedidos=s.docs.map(d=>({id:d.id,...d.data()}));detectarNuevos();pedLoaded=true;badge();archivar();if(TABS_VENTAS.includes(tab))render()},e=>console.warn(e)));
-      unsubs.push(F.onSnapshot(F.doc(fs,"config","tienda"),s=>{cfg={...CONFIG_DEFAULT,...(s.exists()?s.data():{})};pintarEstado();if(tab==="ajustes"&&!document.activeElement.closest?.("#body"))render()}));
-      render();
+      if(!u){productos=[];pedidos=[];cierres=[];codigos=[];sesiones=[];perfil={nombre:""};pedLoaded=cieLoaded=false;vistos=null;ROL="dueno";EMP=null;$("#body").innerHTML="";return}
+      if((u.email||"").toLowerCase()!==OWNER_EMAIL){A.signOut(auth);$("#lErr").textContent="Esta cuenta no tiene permiso para entrar al panel.";return}
+      ROL="dueno";PERMISOS=new Set();EMP=null;EMAIL_ACT=u.email; saludo(EMAIL_ACT);
+      suscribir(unsubs);
     });
   }catch(e){ console.error(e); $("#lErr").textContent="No se pudo conectar con Firebase. Revisa los datos y tu internet."; }
 }
 
 document.querySelectorAll(".tabs [data-t]").forEach(b=>b.onclick=()=>{ if(b.dataset.t==="form"){editando=null} imgNueva=null; ir(b.dataset.t) });
-function ir(t){tab=t;if(t==="pedidos")marcarVistos();document.querySelectorAll(".tabs [data-t]").forEach(x=>x.classList.toggle("act",x.dataset.t===t));render();window.scrollTo(0,0)}
+function ir(t){if(!tabPermitida(t))return;tab=t;if(t==="pedidos")marcarVistos();document.querySelectorAll(".tabs [data-t]").forEach(x=>x.classList.toggle("act",x.dataset.t===t));render();window.scrollTo(0,0)}
 const soloNum=s=>String(s||"").replace(/\D/g,"");
 const telWA=t=>{let d=soloNum(t);if(d.startsWith("00"))d=d.slice(2);if(d.startsWith("0"))d="58"+d.slice(1);else if(d.length===10)d="58"+d;return d};
 const listaOpc=a=>Array.isArray(a)?a.filter(x=>x&&x.nombre):[];
 const fBs=n=>"Bs. "+(Number(n)||0).toLocaleString("es-VE",{minimumFractionDigits:2,maximumFractionDigits:2});
 function itemTxt(x){return `${x.cant} × ${esc(x.nombre)}${x.tamano?` <b style="color:var(--gold2)">(${esc(x.tamano)})</b>`:""}${x.extras&&x.extras.length?` <span style="color:var(--mut)">+ ${esc(x.extras.join(", "))}</span>`:""}${x.nota?` <i style="color:var(--mut)">“${esc(x.nota)}”</i>`:""}`}
 function avisoMsg(o,k){
-  const nom=(o.cliente&&o.cliente.nombre||o.recibe||"").split(" ")[0], n=o.numero, firma=`\n\n— *Villa China "Calcol"* 🏮`;
+  const nom=(o.cliente&&o.cliente.nombre||o.recibe||"").split(" ")[0], n=o.numero, firma=`\n\n— ${firmaNombre()?firmaNombre()+" · ":""}*Villa China "Calcol"* 🏮`;
   const M={
     "Pago confirmado":`Hola ${nom} 👋\n✅ Confirmamos tu pago del pedido *#${n}* por *${usd(o.total)}*${o.totalBs?` (${fBs(o.totalBs)})`:""}. ¡Ya lo estamos preparando!`,
     "Preparando":`Hola ${nom} 👨‍🍳\nTu pedido *#${n}* se está preparando en este momento. Te avisamos cuando salga.`,
@@ -456,7 +550,7 @@ function resumenDia(k,ventas){
 }
 /* Al pasar la medianoche, los pedidos de días anteriores se guardan solos como "cierre del día" */
 async function archivar(){
-  if(archivando||!pedLoaded||!cieLoaded||!F)return; archivando=true;
+  if(archivando||!pedLoaded||!cieLoaded||!F||ROL!=="dueno")return; archivando=true;
   try{
     const hoy=hoyKey(), porDia={};
     pedidos.forEach(o=>{const k=diaKey(o.fecha);if(k!==hoy)(porDia[k]=porDia[k]||[]).push(o)});
@@ -552,6 +646,108 @@ function mostrarAyudaIOS(){
   ov.classList.add("show");
 }
 
+function saludo(email){if(typeof ROL!=="undefined"&&ROL==="empleado"){$("#who").textContent=`🧑‍🍳 ${EMP?EMP.nombre:""} · Empleado`;return}const n=(perfil.nombre||"").trim();$("#who").textContent=n?`👋 Hola, ${n.split(" ")[0]} · ${email}`:email}
+/* ===== Roles: dueño y empleados con código ===== */
+let ROL="dueno", PERMISOS=new Set(), EMP=null, codigos=[], sesiones=[], equipoForm=null, verCod=new Set();
+const puede=p=>ROL==="dueno"||PERMISOS.has(p);
+const TAB_PERM={productos:"productos",form:"productos",pedidos:"pedidos",clientes:"ventas",ventas:"ventas",historial:"ventas",equipo:"__dueno",ajustes:"__dueno"};
+const tabPermitida=t=>ROL==="dueno"||(TAB_PERM[t]&&TAB_PERM[t]!=="__dueno"&&PERMISOS.has(TAB_PERM[t]));
+const PERMS=[["pedidos","🧾 Pedidos","Ver pedidos y comprobantes, cambiar el estado y avisar al cliente"],
+             ["productos","🥡 Productos","Agregar, editar y marcar platos agotados"],
+             ["estado","🟢 Abrir / cerrar","Cambiar si el restaurante está abierto o cerrado"],
+             ["ventas","📊 Ventas","Ver ventas, historial del día y lista de clientes"]];
+const quien=()=>ROL==="dueno"?(perfil.nombre||"Dueño"):(EMP&&EMP.nombre||"Empleado");
+const firmaNombre=()=>ROL==="dueno"?perfil.nombre:(EMP&&EMP.nombre)||"";
+const ALFA="ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+function nuevoCodigo(){const r=new Uint32Array(10);crypto.getRandomValues(r);const s=[...r].map(x=>ALFA[x%ALFA.length]).join("");return s.slice(0,4)+"-"+s.slice(4,8)+"-"+s.slice(8)}
+const normCod=s=>String(s||"").toUpperCase().replace(/[^A-Z0-9]/g,"").replace(/^(.{4})(.{4})(.{2}).*$/,"$1-$2-$3");
+const codOk=c=>/^[A-Z0-9]{4}-[A-Z0-9]{4}-[A-Z0-9]{2}$/.test(c);
+const panelURL=()=>location.origin+location.pathname;
+const disp=()=>{const u=navigator.userAgent;return (/iphone/i.test(u)?"iPhone":/ipad/i.test(u)?"iPad":/android/i.test(u)?"Android":/windows/i.test(u)?"Windows":/mac/i.test(u)?"Mac":"Navegador")+" · "+new Date().toLocaleDateString("es-VE")};
+function aplicarRol(){
+  document.querySelectorAll(".tabs [data-t]").forEach(b=>b.style.display=tabPermitida(b.dataset.t)?"":"none");
+  document.querySelectorAll("#estSeg [data-es]").forEach(b=>b.disabled=!puede("estado"));
+  const st=$(".stats");if(st)st.style.display=puede("productos")?"":"none";
+  if(!tabPermitida(tab)){const t=["pedidos","productos","ventas","historial","clientes"].find(tabPermitida);tab=t||"pedidos"}
+  document.querySelectorAll(".tabs [data-t]").forEach(x=>x.classList.toggle("act",x.dataset.t===tab));
+  saludo(EMAIL_ACT);
+}
+function recortarPorRol(B){
+  if(ROL==="dueno")return;
+  B.querySelectorAll("[data-delp],[data-deldia],#limpiezaBox,#cargarMenu,#cargarEj,#cargarEj+*").forEach(e=>e.remove());
+}
+/* Suscripciones según el rol: cada quien solo pide lo que puede ver */
+function suscribir(unsubs){
+  unsubs.push(F.onSnapshot(F.collection(fs,"productos"),s=>{productos=s.docs.map(d=>({id:d.id,...d.data()}));stats();if(tab==="productos")render()},e=>console.warn(e)));
+  unsubs.push(F.onSnapshot(F.doc(fs,"config","tienda"),s=>{cfg={...CONFIG_DEFAULT,...(s.exists()?s.data():{})};pintarEstado();if(tab==="ajustes"&&!document.activeElement.closest?.("#body"))render()},e=>console.warn(e)));
+  if(ROL==="dueno"){
+    unsubs.push(F.onSnapshot(F.doc(fs,"privado","perfil"),s=>{perfil={nombre:"",...(s.exists()?s.data():{})};saludo(EMAIL_ACT);if(tab==="ajustes"&&!document.activeElement.closest?.("#body"))render()},e=>console.warn(e)));
+    unsubs.push(F.onSnapshot(F.collection(fs,"codigos"),s=>{codigos=s.docs.map(d=>({id:d.id,...d.data()}));if(tab==="equipo"&&!document.activeElement.closest?.("#body input"))render()},e=>console.warn(e)));
+    unsubs.push(F.onSnapshot(F.collection(fs,"sesiones"),s=>{sesiones=s.docs.map(d=>({id:d.id,...d.data()}));if(tab==="equipo"&&!document.activeElement.closest?.("#body input"))render()},e=>console.warn(e)));
+  }
+  if(puede("ventas"))unsubs.push(F.onSnapshot(F.collection(fs,"cierres"),s=>{cierres=s.docs.map(d=>{const c=d.data()||{};return {...c,id:d.id,ventas:(Array.isArray(c.ventas)?c.ventas:[]).map(limpiarPedido)}});cieLoaded=true;archivar();if(TABS_VENTAS.includes(tab))render()},e=>console.warn(e)));
+  else{cierres=[];cieLoaded=true}
+  if(puede("pedidos")||puede("ventas"))unsubs.push(F.onSnapshot(F.collection(fs,"pedidos"),s=>{pedidos=s.docs.map(d=>limpiarPedido({...d.data(),id:d.id}));detectarNuevos();pedLoaded=true;badge();archivar();if(TABS_VENTAS.includes(tab))render()},e=>console.warn(e)));
+  else{pedidos=[];pedLoaded=true}
+  aplicarRol(); render();
+}
+function renderEquipo(B){
+  const ult=c=>{const ss=sesiones.filter(s=>s.codigo===c.id);return {n:ss.length,ult:Math.max(0,...ss.map(s=>s.ultimo||0))}};
+  const f=equipoForm;
+  B.innerHTML=`<div class="pad">
+   <div class="note" style="margin-bottom:14px;line-height:1.5">🧑‍🍳 <b>Empleados</b><br><span style="color:var(--mut);font-size:13px">Crea un código para cada persona y elige qué puede hacer. Ellos entran a este mismo panel tocando <b>“Soy empleado”</b>. Nunca ven los Ajustes, los datos de pago ni esta sección. Si apagas su código, salen del panel al instante.</span></div>
+   ${f?`<div class="ped" style="border-color:var(--gold)"><b style="font-size:16px">${f.id?"Editar empleado":"Nuevo empleado"}</b>
+     <label class="f">Nombre</label><input class="in" id="eNom" maxlength="40" value="${esc(f.nombre||"")}" placeholder="Ej: Ana Rodríguez">
+     <label class="f">Teléfono (para enviarle el código por WhatsApp)</label><input class="in" id="eTel" inputmode="tel" maxlength="20" value="${esc(f.telefono||"")}" placeholder="0412-0000000">
+     <label class="f">¿Qué puede hacer?</label>
+     <div class="opts">${PERMS.map(([k,l,d])=>`<button class="opt chk ${f.permisos.includes(k)?"act":""}" data-pe="${k}"><span><i class="box"></i>${l}<br><small style="color:var(--mut);margin-left:28px;display:block">${d}</small></span></button>`).join("")}</div>
+     <div class="grid2" style="margin-top:14px"><button class="btn ghost" id="eCancel">Cancelar</button><button class="btn gold" id="eSave">${f.id?"Guardar":"Crear código"}</button></div></div>`
+   :`<button class="btn gold" id="eNuevo">＋ Agregar empleado</button>`}
+   <div style="margin-top:14px">${!codigos.length?`<div class="empty" style="padding:24px">Aún no tienes empleados.</div>`:codigos.slice().sort((a,b)=>(b.creado||0)-(a.creado||0)).map(c=>{const u=ult(c);return `<div class="ped" style="${c.activo?"":"opacity:.6"}">
+      <div class="hd"><div><b style="font-size:16px">${esc(c.nombre)}</b><div style="color:var(--mut);font-size:12px">${c.telefono?esc(c.telefono)+" · ":""}${u.ult?"Último acceso: "+new Date(u.ult).toLocaleString("es-VE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}):"Nunca ha entrado"}${u.n?` · ${u.n} dispositivo${u.n>1?"s":""}`:""}</div></div>
+       <button class="sw ${c.activo?"on":""}" data-act="${esc(c.id)}" title="Acceso"></button></div>
+      <div style="font-size:13px;margin:4px 0 8px;color:${c.activo?"#86efac":"#fca5a5"};font-weight:600">${c.activo?"✔ Acceso activo":"⛔ Acceso desactivado"}</div>
+      <div style="display:flex;align-items:center;gap:8px;background:#120c09;border:1px dashed var(--gold);border-radius:12px;padding:10px 12px">
+       <span style="flex:1;font-family:monospace;font-size:18px;letter-spacing:1px;color:var(--gold2)">${verCod.has(c.id)?esc(c.id):"••••-••••-"+esc(c.id.slice(-2))}</span>
+       <button class="ib" data-ver="${esc(c.id)}">${verCod.has(c.id)?"🙈":"👁️"}</button><button class="ib" data-cop="${esc(c.id)}">📋</button></div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">${(c.permisos||[]).map(k=>{const p=PERMS.find(x=>x[0]===k);return p?`<span class="est">${p[1]}</span>`:""}).join("")||`<span class="est">Sin permisos</span>`}</div>
+      <div class="avisos" style="margin-top:10px">
+       <a target="_blank" rel="noopener" href="https://wa.me/${c.telefono?telWA(c.telefono):""}?text=${encodeURIComponent(`Hola ${c.nombre.split(" ")[0]} 👋\nTe doy acceso al panel de *Villa China "Calcol"* 🏮\n\n1️⃣ Abre: ${panelURL()}\n2️⃣ Toca *Soy empleado*\n3️⃣ Escribe tu código: *${c.id}*\n\n🔒 No compartas este código con nadie.`)}">💬 Enviar código</a>
+       <a href="#" data-edit="${esc(c.id)}" style="background:#2a1d15;border-color:var(--line);color:var(--gold2)!important">✏️ Permisos</a>
+       <a href="#" data-rot="${esc(c.id)}" style="background:#2a1d15;border-color:var(--line);color:var(--gold2)!important">🔄 Código nuevo</a>
+       ${u.n?`<a href="#" data-kick="${esc(c.id)}" style="background:#2a1d15;border-color:var(--line);color:var(--gold2)!important">📴 Cerrar sesiones</a>`:""}
+       <a href="#" class="warn" data-delc="${esc(c.id)}">🗑️ Eliminar</a></div></div>`}).join("")}</div>
+  </div>`;
+  const sesDe=id=>sesiones.filter(s=>s.codigo===id);
+  const borrarSes=async id=>{for(const s of sesDe(id)){try{await F.deleteDoc(F.doc(fs,"sesiones",s.id))}catch(e){}}};
+  $("#eNuevo")&&($("#eNuevo").onclick=()=>{equipoForm={nombre:"",telefono:"",permisos:["pedidos"]};render()});
+  if(f){
+    B.querySelectorAll("[data-pe]").forEach(b=>b.onclick=()=>{const k=b.dataset.pe;f.nombre=$("#eNom").value;f.telefono=$("#eTel").value;f.permisos=f.permisos.includes(k)?f.permisos.filter(x=>x!==k):[...f.permisos,k];render()});
+    $("#eCancel").onclick=()=>{equipoForm=null;render()};
+    $("#eSave").onclick=async()=>{
+      const nombre=S($("#eNom").value.trim().replace(/\s+/g," "),40), telefono=S($("#eTel").value.trim(),20);
+      if(nombre.length<2)return toast("Escribe el nombre del empleado");
+      if(!f.permisos.length)return toast("Elige al menos un permiso");
+      try{
+        if(f.id){await F.updateDoc(F.doc(fs,"codigos",f.id),{nombre,telefono,permisos:f.permisos});toast("Permisos actualizados ✔")}
+        else{const id=nuevoCodigo();await F.setDoc(F.doc(fs,"codigos",id),{nombre,telefono,permisos:f.permisos,activo:true,creado:Date.now()});verCod.add(id);toast("Código creado ✔ Envíaselo por WhatsApp")}
+        equipoForm=null;render();
+      }catch(e){console.error(e);toast("No se pudo guardar")}
+    };
+  }
+  B.querySelectorAll("[data-act]").forEach(b=>b.onclick=async()=>{const id=b.dataset.act,c=codigos.find(x=>x.id===id),on=!c.activo;
+    try{await F.updateDoc(F.doc(fs,"codigos",id),{activo:on});if(!on)await borrarSes(id);toast(on?"✔ Acceso activado para "+c.nombre:"⛔ "+c.nombre+" ya no puede entrar")}catch(e){toast("No se pudo cambiar")}});
+  B.querySelectorAll("[data-ver]").forEach(b=>b.onclick=()=>{const id=b.dataset.ver;verCod.has(id)?verCod.delete(id):verCod.add(id);render()});
+  B.querySelectorAll("[data-cop]").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(b.dataset.cop);toast("Código copiado ✔")}catch(e){toast("No se pudo copiar")}});
+  B.querySelectorAll("[data-edit]").forEach(a=>a.onclick=e=>{e.preventDefault();const c=codigos.find(x=>x.id===a.dataset.edit);equipoForm={id:c.id,nombre:c.nombre,telefono:c.telefono||"",permisos:[...(c.permisos||[])]};render();window.scrollTo(0,0)});
+  B.querySelectorAll("[data-kick]").forEach(a=>a.onclick=e=>{e.preventDefault();const id=a.dataset.kick;confirmar("¿Cerrar la sesión de "+(codigos.find(x=>x.id===id)||{}).nombre+" en todos sus dispositivos? Podrá volver a entrar con su código.",async()=>{await borrarSes(id);toast("Sesiones cerradas")},"Cerrar sesiones")});
+  B.querySelectorAll("[data-rot]").forEach(a=>a.onclick=e=>{e.preventDefault();const c=codigos.find(x=>x.id===a.dataset.rot);
+    confirmar(`¿Crear un código nuevo para ${c.nombre}? El código actual deja de funcionar y tendrás que enviarle el nuevo.`,async()=>{
+      try{const id=nuevoCodigo();const {id:_,...datos}=c;await F.setDoc(F.doc(fs,"codigos",id),{...datos,creado:Date.now()});await borrarSes(c.id);await F.deleteDoc(F.doc(fs,"codigos",c.id));verCod.add(id);toast("Código nuevo listo ✔")}catch(e){toast("No se pudo cambiar")}},"Cambiar código")});
+  B.querySelectorAll("[data-delc]").forEach(a=>a.onclick=e=>{e.preventDefault();const c=codigos.find(x=>x.id===a.dataset.delc);
+    confirmar(`¿Eliminar a ${c.nombre}? Su código deja de funcionar para siempre.`,async()=>{try{await borrarSes(c.id);await F.deleteDoc(F.doc(fs,"codigos",c.id));toast("Empleado eliminado")}catch(e){toast("No se pudo eliminar")}})});
+}
+
 function badge(){const n=pedidos.filter(o=>/verificar|recibir/i.test(o.estado||"")).length;const b=$("#badge");if(b){b.textContent=n;b.style.display=n?"inline":"none"}}
 const hora12=s=>{const m=/^(\d{1,2}):(\d{2})/.exec(String(s||""));if(!m)return String(s||"");let h=+m[1]%24;const ap=h<12?"a.m.":"p.m.";h=h%12||12;return `${h}:${m[2]} ${ap}`};
 /* ===== Horario por día ===== */
@@ -588,7 +784,8 @@ function pintarEstado(){
 }
 document.querySelectorAll("#estSeg [data-es]").forEach(b=>b.onclick=async()=>{
   const v=b.dataset.es; const prev=cfg.estadoManual; cfg={...cfg,estadoManual:v}; pintarEstado();
-  try{await F.setDoc(F.doc(fs,"config","tienda"),cfg);toast(v==="abierto"?"🟢 Restaurante ABIERTO":v==="cerrado"?"🔴 Restaurante CERRADO":"🕒 Abre y cierra según horario")}
+  if(!puede("estado")){cfg={...cfg,estadoManual:prev};pintarEstado();return toast("No tienes permiso para esto")}
+  try{try{await F.updateDoc(F.doc(fs,"config","tienda"),{estadoManual:v})}catch(e1){if(ROL!=="dueno")throw e1;await F.setDoc(F.doc(fs,"config","tienda"),cfg)}toast(v==="abierto"?"🟢 Restaurante ABIERTO":v==="cerrado"?"🔴 Restaurante CERRADO":"🕒 Abre y cierra según horario")}
   catch(e){cfg={...cfg,estadoManual:prev};pintarEstado();toast("No se pudo cambiar")}
 });
 setInterval(pintarEstado,60000);
@@ -596,7 +793,8 @@ window.onInstalable=()=>{const b=$("#instalarP");if(b)b.style.display=puedeInsta
 setTimeout(()=>{pintarCampana();window.onInstalable();if(!sonidoOn)$("#avisoSonido").style.display=""},0);
 function stats(){$("#stTot").textContent=productos.length;$("#stDisp").textContent=productos.filter(p=>p.disponible!==false).length;$("#stAgo").textContent=productos.filter(p=>p.disponible===false).length}
 
-function render(){
+function render(){const B=$("#body");if(!tabPermitida(tab)){B.innerHTML="";return}if(tab==="equipo"){renderEquipo(B);return}render0();recortarPorRol(B)}
+function render0(){
   const B=$("#body");
   if(tab==="productos"){
     const list=productos.filter(p=>(!filtro||(p.nombre+" "+p.categoria).toLowerCase().includes(filtro))&&(filtroDisp==="todos"||(filtroDisp==="agotados")===(p.disponible===false))).sort((a,b)=>(a.orden??999)-(b.orden??999));
@@ -664,7 +862,7 @@ function render(){
     const ESTADOS=["Por verificar pago","Pago al recibir","Pago confirmado","Preparando","En camino","Listo para retirar","Entregado","Cancelado"];
     const list=pedidos.slice().sort((a,b)=>(b.fecha||0)-(a.fecha||0));
     B.innerHTML=`<div class="pad">${!list.length?`<div class="empty">Aún no hay pedidos 🧾</div>`:list.map(o=>`<div class="ped">
-      <div class="hd"><b style="font-size:16px">#${esc(o.numero)}</b><span class="est">${esc(o.estado||"")}</span></div>
+      <div class="hd"><b style="font-size:16px">#${esc(o.numero)}</b><span class="est">${esc(o.estado||"")}${o.por?` · ${esc(o.por.split(" ")[0])}`:""}</span></div>
       <div style="color:var(--mut);font-size:12px">${new Date(o.fecha).toLocaleString("es-VE")}</div>
       <div style="margin-top:6px">${(o.items||[]).map(itemTxt).join("<br>")}</div>
       <div style="margin-top:6px;font-weight:800;color:var(--gold)">${usd(o.total)}${o.totalBs?` <span style="color:var(--mut);font-weight:500">· Bs. ${Number(o.totalBs).toLocaleString("es-VE",{minimumFractionDigits:2})}</span>`:""}</div>
@@ -681,9 +879,9 @@ function render(){
       <div class="row" style="margin-top:10px"><select class="in" data-est="${esc(o.id)}" style="padding:9px">${ESTADOS.map(s=>`<option ${s===o.estado?"selected":""}>${s}</option>`).join("")}</select>
       <button class="ib del" data-delp="${esc(o.id)}" title="Borrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
      </div>`).join("")}</div>`;
-    B.querySelectorAll("[data-est]").forEach(s=>s.onchange=async()=>{try{await F.updateDoc(F.doc(fs,"pedidos",s.dataset.est),{estado:s.value});toast("Estado: "+s.value)}catch(e){toast("No se pudo guardar")}});
+    B.querySelectorAll("[data-est]").forEach(s=>s.onchange=async()=>{try{await F.updateDoc(F.doc(fs,"pedidos",s.dataset.est),{estado:s.value,por:quien()});toast("Estado: "+s.value)}catch(e){toast("No se pudo guardar")}});
     B.querySelectorAll("[data-cap]").forEach(b=>b.onclick=()=>{
-      const o=pedidos.find(x=>x.id===b.dataset.cap); let src=o&&o.captura; if(!src){try{src=localStorage.getItem("vc_cap_"+o.numero)}catch(e){}}
+      const o=pedidos.find(x=>x.id===b.dataset.cap); let src=o&&o.captura; if(!src){try{src=localStorage.getItem("vc_cap_"+o.numero)}catch(e){}} if(!capValida(src))src="";
       if(!src)return toast("Este comprobante no está guardado en este dispositivo");
       let ov=$("#ovImg"); if(!ov){ov=document.createElement("div");ov.id="ovImg";ov.className="ov";ov.style.cssText="z-index:80;align-items:center;flex-direction:column;gap:12px;padding:16px";ov.onclick=e=>{if(e.target===ov||e.target.dataset.cerrar!==undefined)ov.classList.remove("show")};document.body.appendChild(ov)}
       ov.innerHTML=`<div style="color:#fff;font-weight:700">Comprobante · #${esc(o.numero)} · ${usd(o.total)}${o.referencia?" · Ref "+esc(o.referencia):""}</div><img src="${src}" style="max-width:100%;max-height:78vh;border-radius:12px;background:#fff"><button class="btn ghost" style="max-width:220px" data-cerrar>Cerrar</button>`;
@@ -692,7 +890,7 @@ function render(){
     B.querySelectorAll("[data-av]").forEach(a=>a.addEventListener("click",()=>{
       const o=pedidos.find(x=>x.id===a.dataset.av), k=a.dataset.k;
       const est={"Pago confirmado":"Pago confirmado","Preparando":"Preparando","En camino":o&&o.entrega==="Delivery"?"En camino":"Listo para retirar","Entregado":"Entregado","Problema de pago":"Por verificar pago"}[k];
-      if(o&&est&&o.estado!==est)F.updateDoc(F.doc(fs,"pedidos",o.id),{estado:est}).catch(()=>{});
+      if(o&&est&&o.estado!==est)F.updateDoc(F.doc(fs,"pedidos",o.id),{estado:est,por:quien()}).catch(()=>{});
     }));
     B.querySelectorAll("[data-delp]").forEach(b=>b.onclick=()=>confirmar("¿Borrar este pedido?",async()=>{try{const o=pedidos.find(x=>x.id===b.dataset.delp);await F.deleteDoc(F.doc(fs,"pedidos",b.dataset.delp));try{o&&localStorage.removeItem("vc_cap_"+o.numero)}catch(e){}}catch(e){toast("No se pudo borrar")}}));
   }
@@ -780,7 +978,7 @@ function render(){
          <button class="btn ghost" style="padding:10px;font-size:13px;color:#ff8a8a" data-deldia="${d.id}">🗑️ Borrar día</button></div></div>`
         :`<div style="color:var(--gold2);font-size:12px;margin-top:4px" data-dia="${d.id}">Toca para ver quién compró ▾</div>`}
      </div>`).join("")}
-     <div class="note" style="margin-top:18px"><b>🧹 Limpieza</b>
+     <div class="note" id="limpiezaBox" style="margin-top:18px"><b>🧹 Limpieza</b>
       <p style="color:var(--mut);font-size:13px;margin:6px 0 10px">El historial de cada día ya está guardado. Limpiar los pedidos viejos libera espacio sin perder el historial ni la lista de clientes.</p>
       <button class="btn ghost" style="padding:11px" id="limpPed" ${pasados?"":"disabled"}>🧹 Limpiar pedidos de días anteriores (${pasados})</button>
       <button class="btn ghost" style="padding:11px;margin-top:8px;color:#ff8a8a" id="borrarTodo" ${dias.length||pasados?"":"disabled"}>🗑️ Borrar TODO el historial de ventas</button>
@@ -805,6 +1003,13 @@ function render(){
   }
   else{
     B.innerHTML=`<div class="pad">
+     <div class="note" style="margin-bottom:14px"><b>👤 Perfil del dueño</b>
+      <label class="f">Tu nombre</label><input class="in" id="pfNom" maxlength="60" value="${esc(perfil.nombre)}" placeholder="Ej: Ronny Bastidas">
+      <div style="font-size:12px;color:var(--mut);margin-top:6px">Sale en el saludo del panel y en la firma de los mensajes que mandas a los clientes.</div>
+      <label class="f">Correo de acceso</label><input class="in" value="${esc(LOCAL?DEMO_MAIL+" (modo prueba)":OWNER_EMAIL)}" disabled style="opacity:.7">
+      <div class="grid2" style="margin-top:10px"><button class="btn gold" style="padding:11px" id="pfSave">Guardar nombre</button>
+      <button class="btn ghost" style="padding:11px;font-size:13px" id="pfPass">🔑 Cambiar contraseña</button></div>
+     </div>
      <label class="f">WhatsApp para pedidos (con código de país)</label><input class="in" id="sWa" inputmode="tel" value="${esc(cfg.whatsapp)}" placeholder="58 412 0000000">
      <div class="note" style="margin-top:14px"><b>📍 Ubicación del restaurante</b>
       <label class="f">Dirección</label><input class="in" id="sDir" value="${esc(cfg.direccion)}" placeholder="Av. principal, sector, ciudad">
@@ -833,6 +1038,10 @@ function render(){
     </div>`;
     $("#sSave").onclick=guardarAjustes;
     $("#sAcep").onclick=e=>e.currentTarget.classList.toggle("on");
+    $("#pfSave").onclick=async()=>{const nombre=S($("#pfNom").value.trim().replace(/\s+/g," "),60);
+      try{await F.setDoc(F.doc(fs,"privado","perfil"),{nombre,actualizado:Date.now()});perfil={...perfil,nombre};saludo(EMAIL_ACT);toast(nombre?"✔ Listo, "+nombre.split(" ")[0]:"Nombre borrado")}catch(e){toast("No se pudo guardar")}};
+    $("#pfPass").onclick=()=>{ if(LOCAL)return toast("En modo prueba la clave es fija. Se cambia cuando conectemos Firebase.");
+      confirmar("Te enviaremos un correo a "+OWNER_EMAIL+" con un enlace para crear una contraseña nueva.",async()=>{try{await window.resetClave();toast("📧 Revisa tu correo (y la carpeta de spam)")}catch(e){toast("No se pudo enviar el correo")}},"Enviar correo")};
     B.querySelectorAll("[data-hd]").forEach(b=>b.onclick=()=>{b.classList.toggle("on");b.closest(".hrow").classList.toggle("off",!b.classList.contains("on"))});
     $("#copiarLun").onclick=()=>{const a=B.querySelector('[data-ha="1"]').value,c=B.querySelector('[data-hc="1"]').value,on=B.querySelector('[data-hd="1"]').classList.contains("on");
       [0,2,3,4,5,6].forEach(d=>{B.querySelector(`[data-ha="${d}"]`).value=a;B.querySelector(`[data-hc="${d}"]`).value=c;const s=B.querySelector(`[data-hd="${d}"]`);s.classList.toggle("on",on);s.closest(".hrow").classList.toggle("off",!on)});toast("Horario copiado · toca Guardar ajustes")};
