@@ -1,0 +1,16 @@
+{
+  "name": "Villa China \"Calcol\" Restaurant",
+  "short_name": "Villa China",
+  "description": "Pide comida china al wok: delivery, pago móvil y pedido por WhatsApp.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0d0907",
+  "theme_color": "#8f0c1f",
+  "lang": "es",
+  "icons": [
+    {"src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
+  ]
+}
