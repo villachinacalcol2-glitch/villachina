@@ -218,6 +218,15 @@ textarea.in{resize:vertical;min-height:70px}
 .prog .ok b{background:#1faa59;border-color:#1faa59;color:#fff}
 .prog i{flex:1;height:2px;background:var(--line);margin-bottom:16px}
 .hint{font-size:12px;color:var(--mut);margin-top:6px;line-height:1.45}
+.mp{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px;margin-bottom:12px}
+.estC{font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:#3a2a20;color:var(--gold2);white-space:nowrap}
+.estC.fin{background:#14532d;color:#86efac}.estC.mal{background:#5b0b16;color:#fca5a5}
+.trk{display:flex;align-items:flex-start;margin-top:12px}
+.trk div{display:flex;flex-direction:column;align-items:center;gap:4px;width:58px;text-align:center;font-size:10px;line-height:1.15;color:var(--mut)}
+.trk b{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;background:#2a1d15;border:1px solid var(--line);font-size:14px}
+.trk .ok b{background:#1faa59;border-color:#1faa59;color:#fff}.trk .on b{background:var(--red2);border-color:var(--gold);animation:latido 1.6s infinite}.trk .on{color:var(--txt);font-weight:600}
+.trk i{flex:1;height:2px;background:var(--line);margin-top:15px}
+.misB{position:relative}.misB em{position:absolute;top:-6px;right:-6px;min-width:20px;height:20px;border-radius:99px;background:var(--red2);color:#fff;font-size:11px;font-style:normal;display:grid;place-items:center;padding:0 5px;border:2px solid #5a0714}
 .toast{position:fixed;left:50%;bottom:100px;transform:translateX(-50%) translateY(20px);opacity:0;z-index:90;background:#241811;border:1px solid var(--gold);padding:10px 16px;border-radius:12px;font-size:14px;transition:.25s;pointer-events:none;max-width:90vw;text-align:center}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 
@@ -343,7 +352,7 @@ h1 span{background:linear-gradient(90deg,#e5b54a,#fff1c4,#e5b54a);background-siz
   <div>Villa China “Calcol” Restaurant</div>
   <div style="margin-top:4px">Precios sujetos a cambio · Pedidos por WhatsApp</div>
   <div style="margin-top:8px;font-size:11px;opacity:.75" id="estadoCx">v3 · conectando…</div>
-  <div style="margin-top:10px"><button onclick="openGuia(0)" style="color:var(--gold2);font-weight:600">📖 Cómo pedir</button> · <button onclick="openFAQ()" style="color:var(--gold2);font-weight:600">❓ Preguntas frecuentes</button> · <button onclick="instalarApp()" style="color:var(--gold2);font-weight:600">📲 Instalar app</button></div>
+  <div style="margin-top:10px"><button onclick="openMis()" style="color:var(--gold2);font-weight:600">🧾 Mis pedidos</button> · <button onclick="openGuia(0)" style="color:var(--gold2);font-weight:600">📖 Cómo pedir</button> · <button onclick="openFAQ()" style="color:var(--gold2);font-weight:600">❓ Preguntas frecuentes</button> · <button onclick="instalarApp()" style="color:var(--gold2);font-weight:600">📲 Instalar app</button></div>
 </footer>
 
 <button class="cartBar" id="cartBar" onclick="openCart()">
@@ -357,6 +366,8 @@ h1 span{background:linear-gradient(90deg,#e5b54a,#fff1c4,#e5b54a);background-siz
 <div class="ov" id="ovCart" onclick="if(event.target===this)closeOv('ovCart')"><div class="sheet" id="cartSheet"></div></div>
 <!-- guia -->
 <div class="ov" id="ovGuia" onclick="if(event.target===this)cerrarGuia()"><div class="sheet" id="guiaSheet"></div></div>
+<!-- mis pedidos -->
+<div class="ov" id="ovMis" onclick="if(event.target===this)closeOv('ovMis')"><div class="sheet" id="misSheet"></div></div>
 <!-- info sheet -->
 <div class="ov" id="ovInfo" onclick="if(event.target===this)closeOv('ovInfo')"><div class="sheet" id="infoSheet"></div></div>
 
@@ -371,7 +382,7 @@ const SEAL = {"Arroces y Pastas": "饭", "Pollo": "鸡", "Camarones": "虾", "Ca
 
 const MENU_EJEMPLO = [{"nombre": "Arroz Especial", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 3, "categoria": "Arroces y Pastas", "tamanos": [{"nombre": "Individual 👤", "precio": 3}, {"nombre": "2 personas 👥", "precio": 5}], "extras": [], "destacado": true, "disponible": true, "orden": 1}, {"nombre": "Rice Cooling", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 4, "categoria": "Arroces y Pastas", "tamanos": [{"nombre": "Individual 👤", "precio": 4}, {"nombre": "2 personas 👥", "precio": 6}], "extras": [], "destacado": false, "disponible": true, "orden": 2}, {"nombre": "Chop Suey", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 3, "categoria": "Arroces y Pastas", "tamanos": [{"nombre": "Individual 👤", "precio": 3}, {"nombre": "2 personas 👥", "precio": 5}], "extras": [], "destacado": false, "disponible": true, "orden": 3}, {"nombre": "Espagueti Especial", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 3, "categoria": "Arroces y Pastas", "tamanos": [{"nombre": "Individual 👤", "precio": 3}, {"nombre": "2 personas 👥", "precio": 6}], "extras": [], "destacado": false, "disponible": true, "orden": 4}, {"nombre": "3 en 1", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 5, "categoria": "Arroces y Pastas", "tamanos": [{"nombre": "Individual 👤", "precio": 5}, {"nombre": "2 personas 👥", "precio": 7}], "extras": [], "destacado": true, "disponible": true, "orden": 5}, {"nombre": "Pollo a la Canasta", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 3, "categoria": "Pollo", "tamanos": [{"nombre": "Individual 👤", "precio": 3}, {"nombre": "2 personas 👥", "precio": 6}], "extras": [], "destacado": false, "disponible": true, "orden": 6}, {"nombre": "Pollo a la Plancha", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 4, "categoria": "Pollo", "tamanos": [{"nombre": "Individual 👤", "precio": 4}, {"nombre": "2 personas 👥", "precio": 6}], "extras": [], "destacado": false, "disponible": true, "orden": 7}, {"nombre": "Pollo en Salsa", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 4, "categoria": "Pollo", "tamanos": [{"nombre": "Individual 👤", "precio": 4}, {"nombre": "2 personas 👥", "precio": 6}], "extras": [], "destacado": false, "disponible": true, "orden": 8}, {"nombre": "Pollo Agridulce", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 4, "categoria": "Pollo", "tamanos": [{"nombre": "Individual 👤", "precio": 4}, {"nombre": "2 personas 👥", "precio": 6}], "extras": [], "destacado": true, "disponible": true, "orden": 9}, {"nombre": "Camarón en Salsa", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 5, "categoria": "Camarones", "tamanos": [{"nombre": "Individual 👤", "precio": 5}, {"nombre": "2 personas 👥", "precio": 7}], "extras": [], "destacado": false, "disponible": true, "orden": 10}, {"nombre": "Camarón Rebozado", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 5, "categoria": "Camarones", "tamanos": [{"nombre": "Individual 👤", "precio": 5}, {"nombre": "2 personas 👥", "precio": 7}], "extras": [], "destacado": true, "disponible": true, "orden": 11}, {"nombre": "Camarón Agridulce", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 5, "categoria": "Camarones", "tamanos": [{"nombre": "Individual 👤", "precio": 5}, {"nombre": "2 personas 👥", "precio": 7}], "extras": [], "destacado": false, "disponible": true, "orden": 12}, {"nombre": "Camarón al Ajillo", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 5, "categoria": "Camarones", "tamanos": [{"nombre": "Individual 👤", "precio": 5}, {"nombre": "2 personas 👥", "precio": 7}], "extras": [], "destacado": false, "disponible": true, "orden": 13}, {"nombre": "Lomito a la Parrilla", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 4, "categoria": "Carnes y Chuletas", "tamanos": [{"nombre": "Individual 👤", "precio": 4}, {"nombre": "2 personas 👥", "precio": 6}], "extras": [], "destacado": false, "disponible": true, "orden": 14}, {"nombre": "Lomito en Salsa", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 4, "categoria": "Carnes y Chuletas", "tamanos": [{"nombre": "Individual 👤", "precio": 4}, {"nombre": "2 personas 👥", "precio": 6}], "extras": [], "destacado": false, "disponible": true, "orden": 15}, {"nombre": "Chuleta de Puerco", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 4, "categoria": "Carnes y Chuletas", "tamanos": [{"nombre": "Individual 👤", "precio": 4}, {"nombre": "2 personas 👥", "precio": 6}], "extras": [], "destacado": false, "disponible": true, "orden": 16}, {"nombre": "Chuleta de Puerco Ahumada", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 5, "categoria": "Carnes y Chuletas", "tamanos": [{"nombre": "Individual 👤", "precio": 5}, {"nombre": "2 personas 👥", "precio": 7}], "extras": [], "destacado": false, "disponible": true, "orden": 17}, {"nombre": "Chuleta Ahumada en Salsa Agridulce", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 5, "categoria": "Carnes y Chuletas", "tamanos": [{"nombre": "Individual 👤", "precio": 5}, {"nombre": "2 personas 👥", "precio": 7}], "extras": [], "destacado": false, "disponible": true, "orden": 18}, {"nombre": "Parrilla Mixta", "descripcion": "Elige servicio Individual 👤 o para 2 personas 👥.", "precio": 5, "categoria": "Carnes y Chuletas", "tamanos": [{"nombre": "Individual 👤", "precio": 5}, {"nombre": "2 personas 👥", "precio": 8}], "extras": [], "destacado": true, "disponible": true, "orden": 19}, {"nombre": "Villa China", "descripcion": "Servicio familiar de la casa.", "precio": 10, "categoria": "Servicios Familiares", "tamanos": [{"nombre": "Opción 10$", "precio": 10}, {"nombre": "Opción 15$", "precio": 15}], "extras": [], "destacado": true, "disponible": true, "orden": 20}, {"nombre": "Arroz Familiar", "descripcion": "Ideal para compartir en familia.", "precio": 20, "categoria": "Servicios Familiares", "tamanos": [], "extras": [], "destacado": false, "disponible": true, "orden": 21}, {"nombre": "Arroz Extra Familiar", "descripcion": "Porción extra grande para toda la familia.", "precio": 25, "categoria": "Servicios Familiares", "tamanos": [], "extras": [], "destacado": false, "disponible": true, "orden": 22}, {"nombre": "Espagueti Familiar", "descripcion": "Ideal para compartir en familia.", "precio": 21, "categoria": "Servicios Familiares", "tamanos": [], "extras": [], "destacado": false, "disponible": true, "orden": 23}, {"nombre": "Pieza de Pollo", "descripcion": "", "precio": 1, "categoria": "Adicionales", "tamanos": [], "extras": [], "destacado": false, "disponible": true, "orden": 24}, {"nombre": "Papitas Fritas", "descripcion": "", "precio": 2, "categoria": "Adicionales", "tamanos": [], "extras": [], "destacado": false, "disponible": true, "orden": 25}, {"nombre": "Patacones", "descripcion": "", "precio": 2, "categoria": "Adicionales", "tamanos": [], "extras": [], "destacado": false, "disponible": true, "orden": 26}, {"nombre": "Tajadas", "descripcion": "", "precio": 2, "categoria": "Adicionales", "tamanos": [], "extras": [], "destacado": false, "disponible": true, "orden": 27}, {"nombre": "Lumpias", "descripcion": "", "precio": 3, "categoria": "Adicionales", "tamanos": [], "extras": [], "destacado": false, "disponible": true, "orden": 28}, {"nombre": "Coca-Cola", "descripcion": "", "precio": 0.6, "categoria": "Bebidas", "tamanos": [{"nombre": "350 ml", "precio": 0.6}, {"nombre": "1 L", "precio": 1.5}, {"nombre": "1.5 L", "precio": 2}, {"nombre": "2 L", "precio": 2.5}], "extras": [], "destacado": false, "disponible": true, "orden": 29}, {"nombre": "Pepsi", "descripcion": "", "precio": 1.5, "categoria": "Bebidas", "tamanos": [{"nombre": "1 L", "precio": 1.5}, {"nombre": "1.25 L", "precio": 1.5}, {"nombre": "1.5 L", "precio": 2}], "extras": [], "destacado": false, "disponible": true, "orden": 30}].map((p,i)=>({id:"m"+(i+1),...p}));
 const CONFIG_DEFAULT = {estadoManual:"auto",mensajeCerrado:"",aceptarCerrado:true,lat:null,lng:null,mapsLink:"",whatsapp:"",direccion:"Dirección del local",abre:"11:00",cierra:"22:00",dias:"Lunes a Domingo",
-  delivery:"Sí",costoDelivery:0,tasaBs:0,pagos:"Pago Móvil, Binance, Efectivo US$, Zelle, Punto de venta",categorias:CATS_DEFAULT,bnId:"",bnUser:"",bnMoneda:"USDT",pmBanco:"",pmTelefono:"",pmCedula:"",pmTitular:""};
+  delivery:"Sí",costoDelivery:0,tasaBs:0,pagos:"Pago Móvil, Binance, Zelle, Nequi, Efectivo US$, Punto de venta",categorias:CATS_DEFAULT,zlCorreo:"",zlTitular:"",nqNumero:"",nqTitular:"",tasaCop:0,bnId:"",bnUser:"",bnMoneda:"USDT",pmBanco:"",pmTelefono:"",pmCedula:"",pmTitular:""};
 
 /* ================== ESTADO ================== */
 let productos = MENU_EJEMPLO.slice();
@@ -614,6 +625,7 @@ const PASOS_GUIA=[
 const FAQ=[
  ["¿Cómo hago el pedido?","Elige tus platos, toca <b>Ver mi pedido</b>, regístrate, indica quién recibe y dónde, paga y envía por WhatsApp. Toca <b>Ver guía</b> para verlo paso a paso."],
  ["¿Cómo pago?","Al tocar <b>Hacer pedido</b> verás el monto en dólares y bolívares y los datos para Pago Móvil. Paga desde la app de tu banco y luego coloca la referencia y el capture."],
+ ["¿Puedo pagar con Zelle o Nequi?","Sí. Elige <b>Zelle</b> o <b>Nequi</b> como método de pago y verás los datos para copiarlos (en Nequi, el monto en pesos). Después sube el capture del envío."],
  ["¿Puedo pagar con Binance?","Sí. Elige <b>Binance</b> como método de pago: verás el Pay ID y el monto en USDT para copiarlos. Después sube el capture del envío (la referencia es opcional)."],
  ["¿Qué es el número de referencia?","Es el número que te da tu banco cuando el pago sale exitoso (por ejemplo 004512). Lo encuentras en el comprobante o en los movimientos de tu cuenta. Es obligatorio solo para Pago Móvil."],
  ["¿Cómo tomo un capture del pago?","Cuando tu banco muestre el pago exitoso, presiona al mismo tiempo <b>Bajar volumen + Encendido</b>. En iPhone: botón lateral + Subir volumen. La imagen queda en tu galería y la subes con el botón 📷."],
@@ -622,7 +634,7 @@ const FAQ=[
  ["¿Cómo envío mi ubicación por WhatsApp?","En el chat del restaurante toca el clip <b>📎</b> (o el <b>➕</b>), elige <b>Ubicación</b> y luego <b>Enviar tu ubicación actual</b>. Así el repartidor llega directo a tu puerta."],
  ["¿Puedo pedir para otra persona?","Sí. En <b>¿Quién recibe el pedido?</b> escribe el nombre y teléfono de esa persona y comparte la ubicación donde está."],
  ["¿Puedo pedir si está cerrado?","Si el restaurante lo permite, sí: tu pedido se atiende cuando abra. Si sale el aviso rojo de cerrado, no se reciben pedidos en ese momento."],
- ["¿Cómo sé que recibieron mi pedido?","Te escribimos por WhatsApp para confirmar tu pago, y otra vez cuando el pedido esté listo o vaya en camino."],
+ ["¿Cómo sé que recibieron mi pedido?","Toca <b>🧾 Mis pedidos</b> arriba: ahí ves cada pedido y cómo va (recibido, pago confirmado, preparando, en camino, entregado). Se actualiza solo. También te escribimos por WhatsApp."],
  ["WhatsApp no se abrió","En la pantalla final toca <b>¿No se abrió WhatsApp? Toca aquí</b>. Asegúrate de tener WhatsApp instalado."],
  ["¿Cómo instalo la app?","Toca <b>📲 Instalar</b> en el menú. En iPhone: abre en Safari, toca <b>Compartir ⬆️</b> y luego <b>Agregar a inicio</b>. Quedará el panda en tu pantalla."],
  ["¿Puedo pagar en efectivo o con punto de venta?","En efectivo sí, también con delivery: pagas al recibir. El <b>punto de venta</b> solo está disponible si <b>retiras en el local</b>."]
@@ -666,17 +678,84 @@ function openFAQ(){
 }
 const pasosPedido=n=>`<div class="prog">${["Tu pedido","Pago","Enviar"].map((l,i)=>`<div class="${i+1<n?"ok":i+1===n?"on":""}"><b>${i+1<n?"✓":i+1}</b><span>${l}</span></div>`).join('<i></i>')}</div>`;
 
+/* ================== MIS PEDIDOS (cliente) ================== */
+const PASOS_EST=[["Recibido","🧾"],["Pago confirmado","✅"],["Preparando","👨‍🍳"],["En camino","🛵"],["Entregado","🎉"]];
+const pasoDe=e=>/cancel/i.test(e)?-1:/entregado/i.test(e)?4:/camino|listo/i.test(e)?3:/preparando/i.test(e)?2:/confirmado/i.test(e)?1:0;
+const estadosVivos={}, escuchando=new Set();
+function misPedidos(){try{return JSON.parse(localStorage.getItem("vc_mis")||"[]")}catch(e){return []}}
+function guardarMio(p){
+  try{const {captura,...d}=p;const a=misPedidos().filter(x=>x.numero!==p.numero);a.push({...d,tieneCaptura:!!captura});
+    localStorage.setItem("vc_mis",JSON.stringify(a.slice(-30)))}catch(e){}
+  subEstados();pintarCuenta();
+}
+const estadoDe=o=>estadosVivos[o.numero]||o.estado||"Recibido";
+const activos=()=>misPedidos().filter(o=>{const k=pasoDe(estadoDe(o));return k>=0&&k<4&&Date.now()-(o.fecha||0)<2*86400000});
+function subEstados(){
+  if(typeof window.escucharEstado!=="function")return;
+  misPedidos().slice(-10).forEach(o=>{
+    if(escuchando.has(o.numero))return;escuchando.add(o.numero);
+    window.escucharEstado(o.numero,d=>{
+      if(!d||!d.estado)return;
+      const prev=estadosVivos[o.numero]||o.estado;estadosVivos[o.numero]=String(d.estado).slice(0,40);
+      if(prev&&prev!==d.estado&&Date.now()-(o.fecha||0)<2*86400000){
+        const k=pasoDe(d.estado),em=k<0?"❌":PASOS_EST[Math.max(0,k)][1];
+        toast(`${em} Tu pedido #${o.numero}: ${d.estado}`);try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+      }
+      pintarCuenta();if($("#ovMis").classList.contains("show"))openMis();
+    });
+  });
+}
+function trackerHTML(o){
+  const e=estadoDe(o),k=pasoDe(e),retiro=o.entrega!=="Delivery";
+  if(k<0)return `<div class="note" style="border-color:#b91c1c;margin-top:8px">❌ Pedido cancelado. Escríbenos si tienes dudas.</div>`;
+  return `<div class="trk">${PASOS_EST.map(([l,em],i)=>{if(i===3&&retiro){l="Listo para retirar";em="🏮"}
+    return `<div class="${i<k?"ok":i===k?"on":""}"><b>${i<k?"✓":em}</b><span>${l}</span></div>`}).join("<i></i>")}</div>`;
+}
+function openMis(){
+  const L=misPedidos().slice().sort((a,b)=>(b.fecha||0)-(a.fecha||0));
+  $("#misSheet").innerHTML=`<div class="sheetH"><h3>🧾 Mis pedidos</h3><button class="x" onclick="closeOv('ovMis')">×</button></div><div class="pad">
+   ${cliente?`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:14px;color:var(--mut)"><span>👤 ${esc(cliente.nombre)} · ${esc(cliente.telefono)}</span><button style="color:var(--gold2);font-weight:600" onclick="closeOv('ovMis');openCuenta()">Editar</button></div>`:""}
+   ${!L.length?`<div class="empty">Aún no tienes pedidos 🥢<br><small>Cuando hagas uno, aquí verás cómo va.</small></div>`:L.map(o=>{const e=estadoDe(o);return `<div class="mp">
+     <div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><b style="font-size:17px">#${esc(o.numero)}</b><span class="estC ${pasoDe(e)<0?"mal":pasoDe(e)===4?"fin":""}">${esc(e)}</span></div>
+     <div style="color:var(--mut);font-size:12px;margin-top:2px">${new Date(o.fecha).toLocaleString("es-VE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"})} · ${o.entrega==="Delivery"?"🛵 Delivery":"🏮 Retiro en local"} · ${esc(o.pago)}</div>
+     ${trackerHTML(o)}
+     <div style="font-size:14px;margin-top:10px;line-height:1.5">${(o.items||[]).map(x=>`${x.cant} × ${esc(x.nombre)}${x.tamano?` <span style="color:var(--gold2)">(${esc(x.tamano)})</span>`:""}`).join("<br>")}</div>
+     <div class="tot big" style="font-size:16px;padding-top:8px"><span>Total</span><span>${usd(o.total)}${o.totalBs?` <small style="color:var(--mut);font-weight:500">· Bs. ${Number(o.totalBs).toLocaleString("es-VE",{minimumFractionDigits:2})}</small>`:""}</span></div>
+     <div class="grid2" style="margin-top:10px">
+      ${waNum()?`<a class="btn ghost" style="padding:10px;font-size:13px" target="_blank" rel="noopener" href="https://wa.me/${waNum()}?text=${encodeURIComponent(`Hola 👋, quisiera saber cómo va mi pedido *#${o.numero}* 🙏`)}">💬 Preguntar</a>`:"<span></span>"}
+      <button class="btn ghost" style="padding:10px;font-size:13px" data-rep="${esc(o.numero)}">🔁 Repetir pedido</button></div>
+   </div>`}).join("")}
+   ${L.length?`<div style="font-size:12px;color:var(--mut);text-align:center;margin-top:6px">Se muestran los pedidos hechos desde este teléfono. El estado se actualiza solo.</div>`:""}
+  </div>`;
+  $("#misSheet").querySelectorAll("[data-rep]").forEach(b=>b.onclick=()=>repetir(b.dataset.rep));
+  openOv("ovMis");
+}
+function repetir(num){
+  const o=misPedidos().find(x=>x.numero===num);if(!o)return;let ok=0,no=[];
+  (o.items||[]).forEach(x=>{const p=productos.find(q=>q.nombre===x.nombre&&q.disponible!==false);
+    if(!p){no.push(x.nombre);return}
+    const key=JSON.stringify([p.id,x.tamano||"",x.extras||[],x.nota||""]),ex=cart.find(c=>c.key===key);
+    if(ex)ex.cant+=x.cant;else cart.push({key,id:p.id,nombre:p.nombre,precio:Number(x.precio)||0,cant:x.cant,nota:x.nota||"",tamano:x.tamano||"",extras:x.extras||[],categoria:p.categoria});ok++});
+  saveCart();pintarCarrito();closeOv("ovMis");
+  if(ok){paso="carrito";openCart();toast(no.length?`Agregado. No disponible: ${no.join(", ")}`:"🔁 Pedido agregado al carrito")}else toast("Esos platos no están disponibles ahora");
+}
+
 /* ================== CLIENTE (registro) ================== */
 let cliente=null; try{cliente=JSON.parse(localStorage.getItem("vc_cliente")||"null")}catch(e){}
 let paso="carrito", pedidoAct=null, ubic=null, form=null;
 const soloNum=s=>String(s||"").replace(/\D/g,"");
 function guardarCliente(c){cliente=c;try{localStorage.setItem("vc_cliente",JSON.stringify(c))}catch(e){} pintarCuenta()}
-function pintarCuenta(){const b=$("#cuentaBtn");if(b)b.textContent=cliente?"👤 "+cliente.nombre.split(" ")[0]:"👤 Registrarme"}
+function pintarCuenta(){const b=$("#cuentaBtn");if(!b)return;
+  const tiene=typeof misPedidos==="function"&&misPedidos().length>0, n=tiene?activos().length:0;
+  b.classList.toggle("misB",tiene);
+  if(tiene){b.innerHTML=`🧾 Mis pedidos${n?`<em>${n}</em>`:""}`;b.onclick=()=>openMis()}
+  else{b.textContent=cliente?"👤 "+cliente.nombre.split(" ")[0]:"👤 Registrarme";b.onclick=()=>openCuenta()}}
 function openCuenta(despues){
   $("#infoSheet").innerHTML=`<div class="sheetH"><h3>${cliente?"Mi cuenta":"Registrarme"}</h3><button class="x" onclick="closeOv('ovInfo')">×</button></div><div class="pad">
    <p style="color:var(--mut);font-size:14px;line-height:1.5">Regístrate una sola vez para hacer tus pedidos más rápido.</p>
    <label class="f">Nombre y apellido</label><input class="in" id="rNom" value="${esc(cliente?.nombre||"")}" placeholder="Ej: María Pérez" autocomplete="name">
    <label class="f">Número de teléfono</label><input class="in" id="rTel" inputmode="tel" value="${esc(cliente?.telefono||"")}" placeholder="0412-0000000" autocomplete="tel">
+   ${misPedidos().length?`<button class="btn ghost" style="margin-top:14px" onclick="closeOv('ovInfo');openMis()">🧾 Ver mis pedidos (${misPedidos().length})</button>`:""}
    <button class="btn gold" style="margin-top:18px" id="rSave">${cliente?"Guardar cambios":"Registrarme"}</button>
    ${cliente?`<button class="btn ghost" style="margin-top:8px;color:#ff8a8a" id="rOut">Cerrar sesión</button>`:""}
   </div>`;
@@ -724,6 +803,8 @@ function renderCart(){
   if(!form&&cliente)form={recibe:cliente.nombre,telRecibe:cliente.telefono,dir:"",pago:""};
   const pagos=String(cfg.pagos||"").split(",").map(s=>s.trim()).filter(Boolean);
   if((cfg.bnId||cfg.bnUser)&&!pagos.some(x=>/binance/i.test(x)))pagos.splice(1,0,"Binance");
+  if(cfg.zlCorreo&&!pagos.some(x=>/zelle/i.test(x)))pagos.splice(2,0,"Zelle");
+  if(cfg.nqNumero&&!pagos.some(x=>/nequi/i.test(x))){const z=pagos.findIndex(x=>/zelle/i.test(x));pagos.splice(z>=0?z+1:2,0,"Nequi")}
   // punto de venta y biopago solo existen en el local: no se ofrecen para delivery
   if(entrega==="Delivery"){for(let i=pagos.length-1;i>=0;i--)if(/punto|biopago/i.test(pagos[i]))pagos.splice(i,1)}
   sh.innerHTML=cab("Mi pedido")+`<div class="pad">${pasosPedido(1)}
@@ -783,6 +864,9 @@ function hacerPedido(){
 const esPagoMovil=p=>/m[oó]vil/i.test(p||"");
 const sinRef=p=>/efectivo|punto/i.test(p||"");
 const esBinance=p=>/binance/i.test(p||"");
+const esZelle=p=>/zelle/i.test(p||"");
+const esNequi=p=>/nequi/i.test(p||"");
+const cop=n=>"$ "+Math.round(n).toLocaleString("es-CO")+" COP";
 function copiarBtn(v,l){return `<button class="ib" style="width:auto;padding:0 10px;font-size:12px;color:var(--gold2)" data-cp="${esc(v)}">${l||"Copiar"}</button>`}
 /* ===== Capture del comprobante: lectura y compresión a prueba de errores ===== */
 let capBlob=null;
@@ -857,7 +941,7 @@ function verImagen(src){
 
 function renderPago(){
   const p=pedidoAct, sh=$("#cartSheet"), pm=esPagoMovil(p.pago), conComp=!sinRef(p.pago);
-  const dato=(k,v,copy)=>v?`<div class="tot" style="align-items:center;color:var(--txt)"><span style="color:var(--mut)">${k}</span><span style="display:flex;align-items:center;gap:8px"><b>${esc(v)}</b>${copy?copiarBtn(copy):""}</span></div>`:"";
+  const dato=(k,v,copy)=>v?`<div class="tot" style="align-items:center;gap:12px;color:var(--txt)"><span style="color:var(--mut);flex:0 0 auto">${k}</span><span style="display:flex;align-items:center;gap:8px;min-width:0;justify-content:flex-end"><b style="word-break:break-all;text-align:right">${esc(v)}</b>${copy?copiarBtn(copy):""}</span></div>`:"";
   sh.innerHTML=cab("Pedido #"+p.numero)+`<div class="pad">${pasosPedido(2)}
    <div style="text-align:center;padding:6px 0 14px"><div style="color:var(--mut);font-size:13px">Total a pagar</div>
     <div style="font-size:30px;font-weight:800;color:var(--gold)">${usd(p.total)}</div>${p.totalBs?`<div style="font-size:16px;font-weight:600">${bs(p.total)}</div>`:""}
@@ -870,6 +954,13 @@ function renderPago(){
       ${dato("Pay ID",cfg.bnId,soloNum(cfg.bnId))}${dato("Correo / usuario",cfg.bnUser,cfg.bnUser)}
       ${dato("Monto",(Number(p.total)||0).toFixed(2)+" "+(cfg.bnMoneda||"USDT"),(Number(p.total)||0).toFixed(2))}
       ${!cfg.bnId&&!cfg.bnUser?`<div style="color:var(--mut);font-size:13px">El restaurante te enviará los datos de Binance por WhatsApp.</div>`:""}</div></div>`:""}
+   ${esZelle(p.pago)?`<div class="note" style="padding:14px;border-color:#7b4ad6"><b style="font-size:15px">💜 Datos para Zelle</b><div class="hint" style="margin-top:2px">Envía desde tu banco o la app de Zelle. Toca <b>Copiar</b> para no equivocarte.</div><div style="margin-top:8px">
+      ${dato("Correo",cfg.zlCorreo,cfg.zlCorreo)}${dato("Titular",cfg.zlTitular)}${dato("Monto",usd(p.total),(Number(p.total)||0).toFixed(2))}
+      ${!cfg.zlCorreo?`<div style="color:var(--mut);font-size:13px">El restaurante te enviará los datos de Zelle por WhatsApp.</div>`:""}</div></div>`:""}
+   ${esNequi(p.pago)?`<div class="note" style="padding:14px;border-color:#d6336c"><b style="font-size:15px">💗 Datos para Nequi</b><div class="hint" style="margin-top:2px">Envía desde tu app Nequi. Toca <b>Copiar</b> para no equivocarte.</div><div style="margin-top:8px">
+      ${dato("Número",cfg.nqNumero,soloNum(cfg.nqNumero))}${dato("Titular",cfg.nqTitular)}
+      ${cfg.tasaCop>0?dato("Monto",cop(p.total*cfg.tasaCop),String(Math.round(p.total*cfg.tasaCop))):dato("Monto",usd(p.total))}
+      ${!cfg.nqNumero?`<div style="color:var(--mut);font-size:13px">El restaurante te enviará los datos de Nequi por WhatsApp.</div>`:""}</div></div>`:""}
    ${!conComp?`<div class="note">💵 Pagas al recibir tu pedido. Ten el monto exacto si es posible.</div>`:`
    <div style="margin-top:6px;font-weight:700">${pm?"Después de pagar, completa estos 2 datos:":"Después de pagar, sube el capture del pago:"}</div>
    <label class="f">${pm?"1. Número de referencia del pago *":"1. Número de referencia o ID de la transacción (opcional)"}</label><input class="in" id="pRef" ${pm?'inputmode="numeric"':""} placeholder="Ej: 004512" value="${esc(p.referencia)}">
@@ -921,6 +1012,7 @@ function mensajeWA(p){
   return t;
 }
 function guardarPedido(p){
+  guardarMio(p);
   const {captura,...sinImg}=p, d={id:p.numero,...sinImg,tieneCaptura:!!captura};
   try{const a=JSON.parse(localStorage.getItem("vc_pedidos")||"[]");const i=a.findIndex(x=>x.numero===p.numero);if(i<0)a.push(d);else a[i]=d;
     localStorage.setItem("vc_pedidos",JSON.stringify(a.slice(-200)))}catch(e){}
@@ -951,6 +1043,7 @@ function renderListo(){
    <div class="note" style="text-align:left;margin-bottom:12px;line-height:1.7"><b>¿Qué sigue?</b><br>
     ${sinRef(p.pago)?"1. Confirmamos tu pedido por WhatsApp":"1. Verificamos tu pago y te confirmamos por WhatsApp"}<br>2. Preparamos tu comida 👨‍🍳<br>3. ${p.entrega==="Delivery"?"Te avisamos cuando vaya en camino 🛵":"Te avisamos cuando esté listo para retirar 🏮"}</div>
    <a class="btn ghost" href="https://wa.me/${waNum()}?text=${encodeURIComponent(mensajeWA(p))}" target="_blank" rel="noopener">¿No se abrió WhatsApp? Toca aquí</a>
+   <button class="btn gold" style="margin-top:8px" onclick="paso='carrito';closeOv('ovCart');pintarCarrito();openMis()">🧾 Seguir mi pedido</button>
    <button class="btn ghost" style="margin-top:8px" onclick="paso='carrito';closeOv('ovCart');pintarCarrito()">Volver al menú</button></div>`;
   $("#shareCap")&&($("#shareCap").onclick=async()=>{try{await navigator.share({files:[file],title:"Comprobante #"+p.numero,text:`Comprobante de pago · Pedido #${p.numero} · ${usd(p.total)}`})}catch(e){if(e&&e.name!=="AbortError")toast("No se pudo compartir. Adjúntalo desde WhatsApp.")}});
   pintarCarrito();
@@ -1002,7 +1095,10 @@ setInterval(pintarCabecera,60000);
       pintarCabecera(); render();
     };
     cargarLocal();
-    window.addEventListener("storage",e=>{if(!e.key||e.key.startsWith("vc_"))cargarLocal()});
+    const cbs={};const leerEst=()=>{try{(JSON.parse(localStorage.getItem("vc_estados")||"[]")).forEach(d=>{if(cbs[d.id])cbs[d.id].forEach(f=>f(d))})}catch(e){}};
+    window.escucharEstado=(num,cb)=>{(cbs[num]=cbs[num]||[]).push(cb);leerEst()};
+    window.addEventListener("storage",e=>{if(!e.key||e.key.startsWith("vc_"))cargarLocal();if(!e.key||e.key==="vc_estados")leerEst()});
+    subEstados();
     return;
   }
   try{
@@ -1011,6 +1107,8 @@ setInterval(pintarCabecera,60000);
     const {getFirestore,collection,doc,onSnapshot,setDoc}=await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
     const fs=getFirestore(initializeApp(FIREBASE_CONFIG));
     window.guardarPedidoRemoto=p=>setDoc(doc(fs,"pedidos",p.numero),JSON.parse(JSON.stringify(p)));
+    window.escucharEstado=(num,cb)=>onSnapshot(doc(fs,"estados",num),s=>cb(s.exists()?s.data():null),()=>{});
+    subEstados();
     onSnapshot(collection(fs,"productos"),{includeMetadataChanges:true},snap=>{
       const cx=$("#estadoCx"); if(cx)cx.textContent="v3 · "+(snap.metadata.fromCache?"🟠 sin conexión, menú guardado":"🟢 menú en vivo");
       productos=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
