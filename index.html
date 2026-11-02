@@ -625,7 +625,7 @@ const FAQ=[
  ["¿Cómo sé que recibieron mi pedido?","Te escribimos por WhatsApp para confirmar tu pago, y otra vez cuando el pedido esté listo o vaya en camino."],
  ["WhatsApp no se abrió","En la pantalla final toca <b>¿No se abrió WhatsApp? Toca aquí</b>. Asegúrate de tener WhatsApp instalado."],
  ["¿Cómo instalo la app?","Toca <b>📲 Instalar</b> en el menú. En iPhone: abre en Safari, toca <b>Compartir ⬆️</b> y luego <b>Agregar a inicio</b>. Quedará el panda en tu pantalla."],
- ["¿Puedo pagar en efectivo?","Sí, si aparece en <b>Método de pago</b>. Con efectivo o punto de venta no tienes que subir comprobante: pagas al recibir."]
+ ["¿Puedo pagar en efectivo o con punto de venta?","En efectivo sí, también con delivery: pagas al recibir. El <b>punto de venta</b> solo está disponible si <b>retiras en el local</b>."]
 ];
 function guiaStrip(){
   let oc=false;try{oc=localStorage.getItem("vc_app_oculto")==="1"}catch(e){}
@@ -724,6 +724,8 @@ function renderCart(){
   if(!form&&cliente)form={recibe:cliente.nombre,telRecibe:cliente.telefono,dir:"",pago:""};
   const pagos=String(cfg.pagos||"").split(",").map(s=>s.trim()).filter(Boolean);
   if((cfg.bnId||cfg.bnUser)&&!pagos.some(x=>/binance/i.test(x)))pagos.splice(1,0,"Binance");
+  // punto de venta y biopago solo existen en el local: no se ofrecen para delivery
+  if(entrega==="Delivery"){for(let i=pagos.length-1;i>=0;i--)if(/punto|biopago/i.test(pagos[i]))pagos.splice(i,1)}
   sh.innerHTML=cab("Mi pedido")+`<div class="pad">${pasosPedido(1)}
    ${itemsHTML(true)}
    ${!cliente?`<div class="note" style="margin-top:16px">👤 Para hacer tu pedido, primero regístrate con tu nombre y teléfono.<button class="btn gold" style="margin-top:10px" id="goReg">Registrarme</button></div>${totalesHTML()}`:`
