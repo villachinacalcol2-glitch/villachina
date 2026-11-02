@@ -874,7 +874,7 @@ function render0(){
       <div style="margin-top:6px;font-weight:800;color:var(--gold)">${usd(o.total)}${o.totalBs?` <span style="color:var(--mut);font-weight:500">· Bs. ${Number(o.totalBs).toLocaleString("es-VE",{minimumFractionDigits:2})}</span>`:""}</div>
       <div style="margin-top:6px">🙋 <b>${esc(o.recibe)}</b> · <a href="tel:${esc(String(o.telRecibe).replace(/\D/g,""))}">${esc(o.telRecibe)}</a>
        ${o.cliente&&o.cliente.nombre!==o.recibe?`<br>👤 Pidió: ${esc(o.cliente.nombre)} · ${esc(o.cliente.telefono)}`:""}
-       <br>🚚 ${esc(o.entrega)}${o.ubicacion?` · <a href="https://maps.google.com/?q=${o.ubicacion.lat},${o.ubicacion.lng}" target="_blank" rel="noopener">📍 Ver ubicación</a>`:(o.entrega==="Delivery"?` · <b style="color:#fca5a5">⚠️ Sin GPS: pídele la ubicación</b>`:"")}
+       <br>🚚 ${esc(o.entrega)}${o.ubicacion?` · <a href="https://maps.google.com/?q=${o.ubicacion.lat},${o.ubicacion.lng}" target="_blank" rel="noopener">📍 Ver ubicación</a>`:(o.entrega==="Delivery"?` · <span style="color:var(--gold2)">📍 Ubicación por WhatsApp</span>`:"")}
        ${o.direccion?`<br>🏠 ${esc(o.direccion)}`:""}
        <br>💳 ${esc(o.pago)}${o.referencia?` · Ref: <b>${esc(o.referencia)}</b>`:""}</div>
       ${o.tieneCaptura||o.captura?`<button class="btn ghost" style="margin-top:10px;padding:10px;color:var(--gold2)" data-cap="${esc(o.id)}">🧾 Ver comprobante de pago</button>`
