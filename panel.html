@@ -11,6 +11,7 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Panel Villa">
+<meta name="version" content="v3">
 <title>Panel · Villa China "Calcol"</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -629,7 +630,11 @@ function marcarVistos(){nuevos.clear();clearInterval(ringT);document.title='Pane
 let promptInstalar=null;
 const esStandalone=()=>window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 const esIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
-if("serviceWorker" in navigator&&/^https?:/.test(location.protocol))window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+if("serviceWorker" in navigator&&/^https?:/.test(location.protocol)){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{try{r.update()}catch(e){}}).catch(()=>{}));
+  let recargado=false;   // cuando hay versión nueva, recarga una sola vez para mostrarla
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(recargado)return;recargado=true;if(navigator.serviceWorker.controller)location.reload()});
+}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();promptInstalar=e;if(window.onInstalable)window.onInstalable()});
 window.addEventListener("appinstalled",()=>{promptInstalar=null;try{toast("¡App instalada! 🎉")}catch(e){};if(window.onInstalable)window.onInstalable()});
 const puedeInstalar=()=>!esStandalone()&&(!!promptInstalar||esIOS());

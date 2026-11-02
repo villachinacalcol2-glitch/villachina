@@ -295,6 +295,7 @@ textarea.in{resize:vertical;min-height:70px}
   <div class="cn">福</div>
   <div>Villa China “Calcol” Restaurant</div>
   <div style="margin-top:4px">Precios sujetos a cambio · Pedidos por WhatsApp</div>
+  <div style="margin-top:8px;font-size:11px;opacity:.75" id="estadoCx">v3 · conectando…</div>
   <div style="margin-top:10px"><button onclick="openGuia(0)" style="color:var(--gold2);font-weight:600">📖 Cómo pedir</button> · <button onclick="openFAQ()" style="color:var(--gold2);font-weight:600">❓ Preguntas frecuentes</button> · <button onclick="instalarApp()" style="color:var(--gold2);font-weight:600">📲 Instalar app</button></div>
 </footer>
 
@@ -480,7 +481,11 @@ function openProd(id){
 let promptInstalar=null;
 const esStandalone=()=>window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches||navigator.standalone===true;
 const esIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
-if("serviceWorker" in navigator&&/^https?:/.test(location.protocol))window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}));
+if("serviceWorker" in navigator&&/^https?:/.test(location.protocol)){
+  window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>{try{r.update()}catch(e){}}).catch(()=>{}));
+  let recargado=false;   // cuando hay versión nueva, recarga una sola vez para mostrarla
+  navigator.serviceWorker.addEventListener("controllerchange",()=>{if(recargado)return;recargado=true;if(navigator.serviceWorker.controller)location.reload()});
+}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();promptInstalar=e;if(window.onInstalable)window.onInstalable()});
 window.addEventListener("appinstalled",()=>{promptInstalar=null;try{toast("¡App instalada! 🎉")}catch(e){};if(window.onInstalable)window.onInstalable()});
 const puedeInstalar=()=>!esStandalone()&&(!!promptInstalar||esIOS());
@@ -890,17 +895,18 @@ setInterval(pintarCabecera,60000);
     const {getFirestore,collection,doc,onSnapshot,setDoc}=await import(`https://www.gstatic.com/firebasejs/${V}/firebase-firestore.js`);
     const fs=getFirestore(initializeApp(FIREBASE_CONFIG));
     window.guardarPedidoRemoto=p=>setDoc(doc(fs,"pedidos",p.numero),JSON.parse(JSON.stringify(p)));
-    onSnapshot(collection(fs,"productos"),snap=>{
+    onSnapshot(collection(fs,"productos"),{includeMetadataChanges:true},snap=>{
+      const cx=$("#estadoCx"); if(cx)cx.textContent="v3 · "+(snap.metadata.fromCache?"🟠 sin conexión, menú guardado":"🟢 menú en vivo");
       productos=snap.docs.map(d=>Object.assign({id:d.id},d.data()));
       // limpiar del carrito lo que ya no existe
       cart=cart.filter(c=>productos.some(p=>p.id===c.id)); saveCart();
       render();
-    },e=>console.warn(e));
+    },e=>{console.warn(e);const cx=$("#estadoCx");if(cx)cx.textContent="v3 · 🔴 no se pudo cargar el menú"});
     onSnapshot(doc(fs,"config","tienda"),s=>{
       cfg=Object.assign({},CONFIG_DEFAULT,s.exists()?s.data():{});
       pintarCabecera(); render();
     },e=>console.warn(e));
-  }catch(e){console.warn(e)}
+  }catch(e){console.warn(e);const cx=$("#estadoCx");if(cx)cx.textContent="v3 · 🔴 sin conexión con la base de datos"}
 })();
 </script>
 </body>
