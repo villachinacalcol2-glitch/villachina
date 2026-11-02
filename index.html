@@ -518,6 +518,7 @@ const FAQ=[
  ["¿Cómo tomo un capture del pago?","Cuando tu banco muestre el pago exitoso, presiona al mismo tiempo <b>Bajar volumen + Encendido</b>. En iPhone: botón lateral + Subir volumen. La imagen queda en tu galería y la subes con el botón 📷."],
  ["Me dice que no pudo leer la imagen","Sube un <b>capture de pantalla</b> (no un PDF ni un documento). Si tomaste foto con iPhone en formato HEIC, mejor haz un capture del pago."],
  ["No me deja compartir mi ubicación","Activa el GPS del teléfono y, cuando el navegador pregunte, toca <b>Permitir</b>. Si no funciona, escribe tu dirección con un punto de referencia: también sirve."],
+ ["¿Cómo envío mi ubicación por WhatsApp?","En el chat del restaurante toca el clip <b>📎</b> (o el <b>➕</b>), elige <b>Ubicación</b> y luego <b>Enviar tu ubicación actual</b>. Así el repartidor llega directo a tu puerta."],
  ["¿Puedo pedir para otra persona?","Sí. En <b>¿Quién recibe el pedido?</b> escribe el nombre y teléfono de esa persona y comparte la ubicación donde está."],
  ["¿Puedo pedir si está cerrado?","Si el restaurante lo permite, sí: tu pedido se atiende cuando abra. Si sale el aviso rojo de cerrado, no se reciben pedidos en ese momento."],
  ["¿Cómo sé que recibieron mi pedido?","Te escribimos por WhatsApp para confirmar tu pago, y otra vez cuando el pedido esté listo o vaya en camino."],
@@ -801,6 +802,7 @@ function mensajeWA(p){
   if(p.recibe!==p.cliente.nombre||p.telRecibe!==p.cliente.telefono)t+=`\n👤 *Pedido hecho por:* ${p.cliente.nombre} · ${p.cliente.telefono}`;
   t+=`\n🚚 *Entrega:* ${p.entrega}`;
   if(p.ubicacion)t+=`\n📍 *Ubicación:* https://maps.google.com/?q=${p.ubicacion.lat},${p.ubicacion.lng}`;
+  else if(p.entrega==="Delivery")t+=`\n📍 *Ubicación:* te la envío ahora en este chat 👇`;
   if(p.direccion)t+=`\n🏠 *Dirección / referencia:* ${p.direccion}`;
   t+=`\n\n💳 *Pago:* ${p.pago}`;
   if(p.referencia)t+=`\n🔢 *Referencia:* ${p.referencia}`;
@@ -832,6 +834,9 @@ function renderListo(){
    <p style="color:var(--mut);margin:8px 0 16px;line-height:1.5">Gracias, ${esc(p.cliente.nombre.split(" ")[0])}. ${p.captura?"Tu comprobante quedó guardado con el pedido. ":""}Te confirmaremos por WhatsApp.</p>
    ${p.captura?(puedeCompartir?`<button class="btn wa" id="shareCap">📎 Enviar también el capture por WhatsApp</button><div style="color:var(--mut);font-size:12px;margin:6px 0 10px">Elige WhatsApp y el chat del restaurante.</div>`
      :`<div class="note" style="margin-bottom:10px">📎 Si quieres, adjunta también el capture en el chat de WhatsApp del restaurante.</div>`):""}
+   ${p.entrega==="Delivery"?`<div class="note" style="text-align:left;margin-bottom:12px;line-height:1.6;border-color:${p.ubicacion?"#4a3220":"#b91c1c"}">
+    <b>📍 ${p.ubicacion?"Para llegar más rápido":"¡Falta tu ubicación!"}</b><br>${p.ubicacion?"Si quieres, envía también":"Envía"} tu ubicación en el chat de WhatsApp del restaurante:<br>
+    1️⃣ Toca el clip 📎 (o el ➕)<br>2️⃣ Elige <b>Ubicación</b><br>3️⃣ Toca <b>Enviar tu ubicación actual</b></div>`:""}
    <div class="note" style="text-align:left;margin-bottom:12px;line-height:1.7"><b>¿Qué sigue?</b><br>
     ${sinRef(p.pago)?"1. Confirmamos tu pedido por WhatsApp":"1. Verificamos tu pago y te confirmamos por WhatsApp"}<br>2. Preparamos tu comida 👨‍🍳<br>3. ${p.entrega==="Delivery"?"Te avisamos cuando vaya en camino 🛵":"Te avisamos cuando esté listo para retirar 🏮"}</div>
    <a class="btn ghost" href="https://wa.me/${waNum()}?text=${encodeURIComponent(mensajeWA(p))}" target="_blank" rel="noopener">¿No se abrió WhatsApp? Toca aquí</a>

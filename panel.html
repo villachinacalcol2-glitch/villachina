@@ -532,6 +532,7 @@ function avisoMsg(o,k){
     "Preparando":`Hola ${nom} 👨‍🍳\nTu pedido *#${n}* se está preparando en este momento. Te avisamos cuando salga.`,
     "En camino":o.entrega==="Delivery"?`¡Hola ${nom}! 🛵\nTu pedido *#${n}* ya va en camino. Lo recibe *${o.recibe}* (${o.telRecibe}). Por favor estar pendiente del teléfono.`:`¡Hola ${nom}! 🏮\nTu pedido *#${n}* ya está *listo para retirar*${cfg.direccion?` en ${cfg.direccion}`:""}.`,
     "Entregado":`¡Gracias ${nom}! 🎉\nTu pedido *#${n}* fue entregado. ¡Buen provecho! 🥢\nEsperamos verte pronto.`,
+    "Pedir ubicación":`Hola ${nom} 👋\nPara llevarte tu pedido *#${n}* necesitamos tu *ubicación exacta* 📍\n\nCompártela así, aquí mismo en este chat:\n1️⃣ Toca el clip 📎 (o el ➕)\n2️⃣ Elige *Ubicación*\n3️⃣ Toca *Enviar tu ubicación actual*\n\n¡Gracias! 🙏`,
     "Problema de pago":`Hola ${nom} ⚠️\nNo hemos podido verificar el pago del pedido *#${n}*${o.referencia?` (Ref: ${o.referencia})`:""} por *${usd(o.total)}*. ¿Nos envías de nuevo la captura del comprobante, por favor?`
   };
   return M[k]+firma;
@@ -873,13 +874,13 @@ function render0(){
       <div style="margin-top:6px;font-weight:800;color:var(--gold)">${usd(o.total)}${o.totalBs?` <span style="color:var(--mut);font-weight:500">· Bs. ${Number(o.totalBs).toLocaleString("es-VE",{minimumFractionDigits:2})}</span>`:""}</div>
       <div style="margin-top:6px">🙋 <b>${esc(o.recibe)}</b> · <a href="tel:${esc(String(o.telRecibe).replace(/\D/g,""))}">${esc(o.telRecibe)}</a>
        ${o.cliente&&o.cliente.nombre!==o.recibe?`<br>👤 Pidió: ${esc(o.cliente.nombre)} · ${esc(o.cliente.telefono)}`:""}
-       <br>🚚 ${esc(o.entrega)}${o.ubicacion?` · <a href="https://maps.google.com/?q=${o.ubicacion.lat},${o.ubicacion.lng}" target="_blank" rel="noopener">📍 Ver ubicación</a>`:""}
+       <br>🚚 ${esc(o.entrega)}${o.ubicacion?` · <a href="https://maps.google.com/?q=${o.ubicacion.lat},${o.ubicacion.lng}" target="_blank" rel="noopener">📍 Ver ubicación</a>`:(o.entrega==="Delivery"?` · <b style="color:#fca5a5">⚠️ Sin GPS: pídele la ubicación</b>`:"")}
        ${o.direccion?`<br>🏠 ${esc(o.direccion)}`:""}
        <br>💳 ${esc(o.pago)}${o.referencia?` · Ref: <b>${esc(o.referencia)}</b>`:""}</div>
       ${o.tieneCaptura||o.captura?`<button class="btn ghost" style="margin-top:10px;padding:10px;color:var(--gold2)" data-cap="${esc(o.id)}">🧾 Ver comprobante de pago</button>`
         :(/efectivo|punto/i.test(o.pago||"")?"":`<div style="margin-top:8px;color:#fca5a5;font-size:13px">❗ Sin comprobante</div>`)}
       <div style="margin-top:10px;font-size:12px;color:var(--mut)">Avisar al cliente por WhatsApp (${esc(o.cliente&&o.cliente.telefono||o.telRecibe)}):</div>
-      <div class="avisos">${[["Pago confirmado","✅ Pago confirmado"],["Preparando","👨‍🍳 Preparando"],["En camino",o.entrega==="Delivery"?"🛵 En camino":"🏮 Listo para retirar"],["Entregado","🎉 Entregado"],["Problema de pago","⚠️ Problema de pago"]]
+      <div class="avisos">${[["Pago confirmado","✅ Pago confirmado"],["Preparando","👨‍🍳 Preparando"],["En camino",o.entrega==="Delivery"?"🛵 En camino":"🏮 Listo para retirar"],["Entregado","🎉 Entregado"],["Problema de pago","⚠️ Problema de pago"],...(o.entrega==="Delivery"?[["Pedir ubicación","📍 Pedir ubicación"]]:[])]
         .map(([k,l])=>`<a ${k==="Problema de pago"?'class="warn"':""} target="_blank" rel="noopener" data-av="${esc(o.id)}" data-k="${k}" href="https://wa.me/${telWA(o.cliente&&o.cliente.telefono||o.telRecibe)}?text=${encodeURIComponent(avisoMsg(o,k))}">${l}</a>`).join("")}</div>
       <div class="row" style="margin-top:10px"><select class="in" data-est="${esc(o.id)}" style="padding:9px">${ESTADOS.map(s=>`<option ${s===o.estado?"selected":""}>${s}</option>`).join("")}</select>
       <button class="ib del" data-delp="${esc(o.id)}" title="Borrar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></button></div>
